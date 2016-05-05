@@ -1,0 +1,13 @@
+
+language: go
+go:
+  - 1.6.1
+
+sudo: false
+
+branches:
+  only:
+    - master
+
+script:
+  - make test
