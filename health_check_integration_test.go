@@ -18,9 +18,11 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 	connection.EXPECT().Consumer(gomock.Any()).Return(check.consumer, nil)
 	connection.EXPECT().Producer(gomock.Any()).Return(check.producer)
 	connection.EXPECT().Metadata().Return(healthyMetadata(check.config.topicName), nil)
+	connection.EXPECT().Close().AnyTimes()
 
 	statusUpdates := make(chan string)
 	defer close(statusUpdates)
+
 	go check.checkHealth(statusUpdates, stop)
 	status := <-statusUpdates
 
