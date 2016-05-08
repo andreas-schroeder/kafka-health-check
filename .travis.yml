@@ -10,7 +10,12 @@ branches:
   only:
     - master
 
-install: make deps
+# since godep is disabled by the presence of a Makefile: https://docs.travis-ci.com/user/languages/go/#Dependency-Management
+install:
+ - go get github.com/golang/mock/gomock
+ - go get github.com/golang/snappy
+ - go get github.com/optiopay/kafka
+ - go get github.com/samuel/go-zookeeper/zk
 
 script:
   - make test
