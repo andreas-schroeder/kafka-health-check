@@ -59,7 +59,6 @@ func (check *healthCheck) tryConnectOnce(createIfMissing *bool) error {
 
 func (check *healthCheck) getBrokerPartitionId(createIfMissing *bool) (int32, error) {
 	brokerId := int32(check.config.brokerId)
-	retryInterval := check.config.retryInterval
 
 	metadata, err := check.broker.Metadata()
 	if err != nil {
@@ -94,7 +93,7 @@ func (check *healthCheck) getBrokerPartitionId(createIfMissing *bool) (int32, er
 			return 0, errors.New("health check topic created, try again.")
 		}
 	} else {
-		return 0, errors.New(fmt.Sprintf("unable to find parition for broker %d in metadata %v, retrying in %s", brokerId, metadata, retryInterval))
+		return 0, errors.New(fmt.Sprintf("unable to find topic and parition for broker %d in metadata.", brokerId))
 	}
 }
 
