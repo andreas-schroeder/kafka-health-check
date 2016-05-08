@@ -10,5 +10,7 @@ branches:
   only:
     - master
 
+install: make deps
+
 script:
   - make test
