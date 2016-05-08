@@ -1,7 +1,10 @@
-# Kafka Health Check
+# Kafka Health Check 
 
 Health checker for Kafka that operates by inserting a message in a dedicated health check topic and waiting for it to
 become available on the consumer side.
+
+## Status
+[![Build Status](https://travis-ci.org/andreas-schroeder/kafka-health-check.svg?branch=master)](https://travis-ci.org/andreas-schroeder/kafka-health-check)
 
 ## Usage
 
