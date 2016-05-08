@@ -1,6 +1,9 @@
 build:
 	@go build .
 
+install:
+	@go install .
+
 deps:
 	@godep restore
 
