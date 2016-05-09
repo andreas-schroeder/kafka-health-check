@@ -20,10 +20,10 @@ type healthCheck struct {
 
 type HealthCheckConfig struct {
 	MessageLength    int
-	RetryInterval    time.Duration
 	CheckInterval    time.Duration
 	CheckTimeout     time.Duration
 	DataWaitInterval time.Duration
+	retryInterval    time.Duration
 	topicName        string
 	brokerId         uint
 	brokerPort       uint

@@ -28,6 +28,7 @@ func (check *healthCheck) ParseCommandLineArguments() {
 			check.config.topicName = fmt.Sprintf("broker-%d-health-check", check.config.brokerId)
 			l.Println("using topic", check.config.topicName, "for broker", check.config.brokerId, "health check")
 		}
+		check.config.retryInterval = check.config.CheckInterval / 2
 	}
 }
 

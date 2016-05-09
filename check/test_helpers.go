@@ -13,8 +13,8 @@ import (
 func newTestCheck() *healthCheck {
 	config := HealthCheckConfig{
 		MessageLength:    100,
-		RetryInterval:    1 * time.Millisecond,
 		CheckInterval:    1 * time.Millisecond,
+		retryInterval:    1 * time.Millisecond,
 		CheckTimeout:     5 * time.Millisecond,
 		DataWaitInterval: 1 * time.Millisecond,
 		topicName:        "health-check",

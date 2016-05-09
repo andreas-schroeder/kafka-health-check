@@ -12,7 +12,7 @@ import (
 
 func (check *healthCheck) connect(firstConnection bool, stop <-chan struct{}) error {
 	var createIfMissing = firstConnection
-	ticker := time.NewTicker(check.config.RetryInterval)
+	ticker := time.NewTicker(check.config.retryInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -27,7 +27,7 @@ func (check *healthCheck) connect(firstConnection bool, stop <-chan struct{}) er
 }
 
 func (check *healthCheck) tryConnectOnce(createIfMissing *bool) error {
-	pauseTime := check.config.RetryInterval
+	pauseTime := check.config.retryInterval
 	// connect to kafka cluster
 	connectString := []string{fmt.Sprintf("localhost:%d", check.config.brokerPort)}
 	err := check.broker.Dial(connectString, check.brokerConfig())

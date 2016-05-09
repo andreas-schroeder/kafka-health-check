@@ -14,7 +14,6 @@ func main() {
 
 var checkConfiguration = check.HealthCheckConfig{
 	MessageLength:    20,
-	RetryInterval:    5 * time.Second,
 	CheckTimeout:     100 * time.Millisecond,
 	DataWaitInterval: 20 * time.Millisecond,
 }
