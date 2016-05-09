@@ -23,6 +23,11 @@ func (check *healthCheck) ParseCommandLineArguments() {
 		l.Printf("%s usage:\n", os.Args[0])
 		flag.PrintDefaults()
 		l.Fatal("One or more mandatory command line parameters are missing.")
+	} else {
+		if check.config.topicName == "" {
+			check.config.topicName = fmt.Sprintf("broker-%d-health-check", check.config.brokerId)
+			l.Println("using topic", check.config.topicName, "for broker", check.config.brokerId, "health check")
+		}
 	}
 }
 
@@ -39,11 +44,6 @@ func (check *healthCheck) validateConfig(l *log.Logger) bool {
 	if check.config.topicName != "" && !validTopicName(check.config.topicName) {
 		l.Println("topic name", check.config.topicName, "is not a valid Kafka topic name.")
 		valid = false
-	}
-
-	if valid && check.config.topicName == "" {
-		check.config.topicName = fmt.Sprintf("broker-%d-health-check", check.config.brokerId)
-		l.Println("using topic", check.config.topicName, "for broker", check.config.brokerId, "health check")
 	}
 
 	return valid
