@@ -30,13 +30,12 @@ Tested with the following Kafka versions:
 
 ## Building
 
-Run `make` to build after running `make deps` to restore the dependencies.
+Run `make` to build after running `make deps` to restore the dependencies using [govendor](https://github.com/kardianos/govendor).
 
 ### Prerequisites
 
 * Make to run the [Makefile](Makefile)
 * [Go 1.6](https://golang.org/dl/) since it's written in Go
-* [Go dep](https://github.com/tools/godep) for dependency management. To install, `go get github.com/tools/godep`
 
 
 ## Notable Details on Health Check Behavior
