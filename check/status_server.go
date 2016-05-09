@@ -1,4 +1,4 @@
-package main
+package check
 
 import (
 	"fmt"
@@ -7,7 +7,8 @@ import (
 	"net/http"
 )
 
-func serveBrokerHealth(port uint) chan<- string {
+func (check *healthCheck) ServeBrokerHealth() chan<- string {
+	port := check.config.statusServerPort
 	statusUpdates := make(chan string, 2)
 	statusRequests := make(chan chan string)
 

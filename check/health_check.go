@@ -1,4 +1,4 @@
-package main
+package check
 
 import (
 	"github.com/optiopay/kafka"
@@ -13,30 +13,51 @@ type healthCheck struct {
 	broker      BrokerConnection
 	consumer    kafka.Consumer
 	producer    kafka.Producer
-	config      healthCheckConfig
+	config      HealthCheckConfig
 	partitionId int32
 	randSrc     rand.Source
+}
+
+type HealthCheckConfig struct {
+	MessageLength    int
+	RetryInterval    time.Duration
+	CheckInterval    time.Duration
+	CheckTimeout     time.Duration
+	DataWaitInterval time.Duration
+	topicName        string
+	brokerId         uint
+	brokerPort       uint
+	zookeeperConnect string
+	statusServerPort uint
+}
+
+func New(config HealthCheckConfig) *healthCheck {
+	return &healthCheck{
+		broker:    &kafkaBrokerConnection{},
+		zookeeper: &zkConnection{},
+		config:    config,
+	}
 }
 
 func (check *healthCheck) brokerConfig() kafka.BrokerConf {
 	config := kafka.NewBrokerConf("health-check-client")
 	config.DialRetryLimit = 1
-	config.DialRetryWait = check.config.checkTimeout
+	config.DialRetryWait = check.config.CheckTimeout
 	return config
 }
 
 func (check *healthCheck) consumerConfig() kafka.ConsumerConf {
 	config := kafka.NewConsumerConf(check.config.topicName, check.partitionId)
 	config.StartOffset = kafka.StartOffsetNewest
-	config.RequestTimeout = check.config.checkTimeout
+	config.RequestTimeout = check.config.CheckTimeout
 	config.RetryLimit = 1
-	config.RetryWait = check.config.checkTimeout
+	config.RetryWait = check.config.CheckTimeout
 	return config
 }
 
 func (check *healthCheck) producerConfig() kafka.ProducerConf {
 	config := kafka.NewProducerConf()
-	config.RequestTimeout = check.config.checkTimeout
+	config.RequestTimeout = check.config.CheckTimeout
 	config.RetryLimit = 1
 	return config
 }
@@ -46,21 +67,8 @@ const (
 	unhealthy = "nook"
 )
 
-type healthCheckConfig struct {
-	messageLength    int
-	retryInterval    time.Duration
-	checkInterval    time.Duration
-	checkTimeout     time.Duration
-	dataWaitInterval time.Duration
-	topicName        string
-	brokerId         uint
-	brokerPort       uint
-	zookeeperConnect string
-	statusServerPort uint
-}
-
 // periodically checks health of the Kafka broker
-func (check *healthCheck) checkHealth(statusUpdates chan<- string, stop <-chan struct{}) {
+func (check *healthCheck) CheckHealth(statusUpdates chan<- string, stop <-chan struct{}) {
 	err := check.connect(true, stop)
 	if err != nil {
 		return
@@ -70,7 +78,7 @@ func (check *healthCheck) checkHealth(statusUpdates chan<- string, stop <-chan s
 	check.randSrc = rand.NewSource(time.Now().UnixNano())
 
 	log.Println("starting broker health check loop")
-	ticker := time.NewTicker(check.config.checkInterval)
+	ticker := time.NewTicker(check.config.CheckInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -97,7 +105,7 @@ func (check *healthCheck) checkHealth(statusUpdates chan<- string, stop <-chan s
 // sends one message to the broker partition, wait for it to appear on the consumer.
 func (check *healthCheck) doOneCheck() string {
 	status := unhealthy
-	payload := randomBytes(check.config.messageLength, check.randSrc)
+	payload := randomBytes(check.config.MessageLength, check.randSrc)
 	message := &proto.Message{Value: []byte(payload)}
 
 	if _, err := check.producer.Produce(check.config.topicName, check.partitionId, message); err != nil {
@@ -111,7 +119,7 @@ func (check *healthCheck) doOneCheck() string {
 
 // waits for a message with the payload of the given message to appear on the consumer side.
 func (check *healthCheck) waitForMessage(message *proto.Message) string {
-	deadline := time.Now().Add(check.config.checkTimeout)
+	deadline := time.Now().Add(check.config.CheckTimeout)
 	for time.Now().Before(deadline) {
 		receivedMessage, err := check.consumer.Consume()
 		if err != nil {
@@ -120,7 +128,7 @@ func (check *healthCheck) waitForMessage(message *proto.Message) string {
 				return unhealthy
 			}
 			if time.Now().Before(deadline) {
-				time.Sleep(check.config.dataWaitInterval)
+				time.Sleep(check.config.DataWaitInterval)
 			}
 			continue
 		}

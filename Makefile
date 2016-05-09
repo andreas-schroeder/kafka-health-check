@@ -9,6 +9,6 @@ deps:
 	@govendor sync
 
 test: build
-	@go fmt .
-	@go vet .
-	@go test -v -race .
+	@go fmt . ./check
+	@go vet . ./check
+	@go test -v -race ./check

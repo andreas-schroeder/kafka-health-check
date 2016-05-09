@@ -1,4 +1,4 @@
-package main
+package check
 
 import (
 	"github.com/golang/mock/gomock"
@@ -23,7 +23,7 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 	statusUpdates := make(chan string)
 	defer close(statusUpdates)
 
-	go check.checkHealth(statusUpdates, stop)
+	go check.CheckHealth(statusUpdates, stop)
 	status := <-statusUpdates
 
 	if status != healthy {

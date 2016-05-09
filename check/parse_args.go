@@ -1,4 +1,4 @@
-package main
+package check
 
 import (
 	"flag"
@@ -9,13 +9,13 @@ import (
 	"time"
 )
 
-func (check *healthCheck) parseCommandLineArguments() {
+func (check *healthCheck) ParseCommandLineArguments() {
 	flag.UintVar(&check.config.brokerId, "broker-id", 0, "id of the Kafka broker to health check")
 	flag.UintVar(&check.config.brokerPort, "broker-port", 9092, "Kafka broker port")
 	flag.UintVar(&check.config.statusServerPort, "server-port", 8000, "port to open for http health status queries")
 	flag.StringVar(&check.config.zookeeperConnect, "zookeeper", "", "ZooKeeper connect string (e.g. node1:2181,node2:2181,.../chroot)")
 	flag.StringVar(&check.config.topicName, "topic", "", "name of the topic to use - use one per broker, defaults to broker-<id>-health-check")
-	flag.DurationVar(&check.config.checkInterval, "check-interval", 10*time.Second, "how frequently to perform health checks")
+	flag.DurationVar(&check.config.CheckInterval, "check-interval", 10*time.Second, "how frequently to perform health checks")
 	flag.Parse()
 	l := log.New(os.Stderr, "", 0)
 	valid := check.validateConfig(l)

@@ -1,4 +1,4 @@
-package main
+package check
 
 import (
 	"errors"
@@ -11,12 +11,12 @@ import (
 )
 
 func newTestCheck() *healthCheck {
-	config := healthCheckConfig{
-		messageLength:    100,
-		retryInterval:    1 * time.Millisecond,
-		checkInterval:    1 * time.Millisecond,
-		checkTimeout:     5 * time.Millisecond,
-		dataWaitInterval: 1 * time.Millisecond,
+	config := HealthCheckConfig{
+		MessageLength:    100,
+		RetryInterval:    1 * time.Millisecond,
+		CheckInterval:    1 * time.Millisecond,
+		CheckTimeout:     5 * time.Millisecond,
+		DataWaitInterval: 1 * time.Millisecond,
 		topicName:        "health-check",
 		brokerId:         1,
 	}
