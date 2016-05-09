@@ -1,0 +1,47 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "JSHl8b3nI8EWvzm+uyrIqj2Hiu4=",
+			"path": "github.com/golang/mock/gomock",
+			"revision": "bd3c8e81be01eef76d4b503f5e687d2d1354d2d9"
+		},
+		{
+			"checksumSHA1": "ks9nCA68MefWDMUIjIF/zJwpTuw=",
+			"path": "github.com/golang/mock/gomock/mock_matcher",
+			"revision": "bd3c8e81be01eef76d4b503f5e687d2d1354d2d9"
+		},
+		{
+			"checksumSHA1": "Y9kbUqEbt5vUbqcuJea5PLmqtCI=",
+			"path": "github.com/golang/snappy",
+			"revision": "b62d312cd2a7474ccb7eb06a4686f0560e4ba7fb"
+		},
+		{
+			"checksumSHA1": "LCo45KOYMPpJKgxlj3mlMVF1zN0=",
+			"path": "github.com/optiopay/kafka",
+			"revision": "5ea5ed9f82995911f606b346b370ffd233363950"
+		},
+		{
+			"checksumSHA1": "pI0IkJbYND5BK1oAF5LmByjq3C8=",
+			"path": "github.com/optiopay/kafka/integration",
+			"revision": "5ea5ed9f82995911f606b346b370ffd233363950"
+		},
+		{
+			"checksumSHA1": "0RLEpjhmQspBVOF3LjfMQGc9XeQ=",
+			"path": "github.com/optiopay/kafka/kafkatest",
+			"revision": "5ea5ed9f82995911f606b346b370ffd233363950"
+		},
+		{
+			"checksumSHA1": "FRHMZLdFcsD9j3ZfCXfUN2TFBm0=",
+			"path": "github.com/optiopay/kafka/proto",
+			"revision": "5ea5ed9f82995911f606b346b370ffd233363950"
+		},
+		{
+			"checksumSHA1": "Mjz0ZUqS94MA3AjF7ros5I/RSxc=",
+			"path": "github.com/samuel/go-zookeeper/zk",
+			"revision": "5250732bd2ed71d1e374212ebfc32760eca10c0a"
+		}
+	],
+	"rootPath": "github.com/andreas-schroeder/kafka-health-check"
+}

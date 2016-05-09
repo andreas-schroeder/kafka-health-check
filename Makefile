@@ -5,7 +5,8 @@ install:
 	@go install .
 
 deps:
-	@godep restore
+	@go get -u github.com/kardianos/govendor
+	@govendor sync
 
 test: build
 	@go fmt .
