@@ -1,4 +1,4 @@
-# Kafka Health Check 
+# Kafka Health Check
 
 Health checker for Kafka that operates by inserting a message in a dedicated health check topic and waiting for it to
 become available on the consumer side.
@@ -14,6 +14,8 @@ kafka-health-check usage:
     	id of the Kafka broker to health check
   -broker-port uint
     	Kafka broker port (default 9092)
+  -check-interval duration
+    	how frequently to perform health checks (default 10s)
   -server-port uint
     	port to open for http health status queries (default 8000)
   -topic string
