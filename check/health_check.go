@@ -1,11 +1,12 @@
 package check
 
 import (
-	"github.com/optiopay/kafka"
-	"github.com/optiopay/kafka/proto"
 	"log"
 	"math/rand"
 	"time"
+
+	"github.com/optiopay/kafka"
+	"github.com/optiopay/kafka/proto"
 )
 
 type healthCheck struct {
@@ -14,7 +15,7 @@ type healthCheck struct {
 	consumer    kafka.Consumer
 	producer    kafka.Producer
 	config      HealthCheckConfig
-	partitionId int32
+	partitionID int32
 	randSrc     rand.Source
 }
 
@@ -25,7 +26,7 @@ type HealthCheckConfig struct {
 	DataWaitInterval time.Duration
 	retryInterval    time.Duration
 	topicName        string
-	brokerId         uint
+	brokerID         uint
 	brokerPort       uint
 	zookeeperConnect string
 	statusServerPort uint
@@ -47,7 +48,7 @@ func (check *healthCheck) brokerConfig() kafka.BrokerConf {
 }
 
 func (check *healthCheck) consumerConfig() kafka.ConsumerConf {
-	config := kafka.NewConsumerConf(check.config.topicName, check.partitionId)
+	config := kafka.NewConsumerConf(check.config.topicName, check.partitionID)
 	config.StartOffset = kafka.StartOffsetNewest
 	config.RequestTimeout = check.config.CheckTimeout
 	config.RetryLimit = 1
@@ -108,7 +109,7 @@ func (check *healthCheck) doOneCheck() string {
 	payload := randomBytes(check.config.MessageLength, check.randSrc)
 	message := &proto.Message{Value: []byte(payload)}
 
-	if _, err := check.producer.Produce(check.config.topicName, check.partitionId, message); err != nil {
+	if _, err := check.producer.Produce(check.config.topicName, check.partitionID, message); err != nil {
 		log.Println("producer failure - broker unhealthy:", err)
 	} else {
 		status = check.waitForMessage(message)

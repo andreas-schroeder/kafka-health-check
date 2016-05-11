@@ -1,10 +1,11 @@
 package check
 
 import (
-	"github.com/golang/mock/gomock"
-	"github.com/optiopay/kafka"
 	"testing"
 	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/optiopay/kafka"
 )
 
 func Test_doOneCheck_WhenProducedMessageIsConsumed_ReturnsHealthy(t *testing.T) {

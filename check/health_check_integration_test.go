@@ -1,9 +1,10 @@
 package check
 
 import (
-	"github.com/golang/mock/gomock"
 	"sync"
 	"testing"
+
+	"github.com/golang/mock/gomock"
 )
 
 func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHealthy(t *testing.T) {

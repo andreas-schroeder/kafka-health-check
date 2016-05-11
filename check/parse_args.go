@@ -10,7 +10,7 @@ import (
 )
 
 func (check *healthCheck) ParseCommandLineArguments() {
-	flag.UintVar(&check.config.brokerId, "broker-id", 0, "id of the Kafka broker to health check")
+	flag.UintVar(&check.config.brokerID, "broker-id", 0, "id of the Kafka broker to health check")
 	flag.UintVar(&check.config.brokerPort, "broker-port", 9092, "Kafka broker port")
 	flag.UintVar(&check.config.statusServerPort, "server-port", 8000, "port to open for http health status queries")
 	flag.StringVar(&check.config.zookeeperConnect, "zookeeper", "", "ZooKeeper connect string (e.g. node1:2181,node2:2181,.../chroot)")
@@ -25,8 +25,8 @@ func (check *healthCheck) ParseCommandLineArguments() {
 		l.Fatal("One or more mandatory command line parameters are missing.")
 	} else {
 		if check.config.topicName == "" {
-			check.config.topicName = fmt.Sprintf("broker-%d-health-check", check.config.brokerId)
-			l.Println("using topic", check.config.topicName, "for broker", check.config.brokerId, "health check")
+			check.config.topicName = fmt.Sprintf("broker-%d-health-check", check.config.brokerID)
+			l.Println("using topic", check.config.topicName, "for broker", check.config.brokerID, "health check")
 		}
 		check.config.retryInterval = check.config.CheckInterval / 2
 	}
@@ -38,7 +38,7 @@ func (check *healthCheck) validateConfig(l *log.Logger) bool {
 		l.Println("parameter -zookeeper required.")
 		valid = false
 	}
-	if check.config.brokerId == 0 {
+	if check.config.brokerID == 0 {
 		l.Println("parameter -broker-id required.")
 		valid = false
 	}

@@ -2,12 +2,13 @@ package check
 
 import (
 	"errors"
+	"math/rand"
+	"time"
+
 	"github.com/golang/mock/gomock"
 	"github.com/optiopay/kafka"
 	"github.com/optiopay/kafka/kafkatest"
 	"github.com/optiopay/kafka/proto"
-	"math/rand"
-	"time"
 )
 
 func newTestCheck() *healthCheck {
@@ -18,7 +19,7 @@ func newTestCheck() *healthCheck {
 		CheckTimeout:     5 * time.Millisecond,
 		DataWaitInterval: 1 * time.Millisecond,
 		topicName:        "health-check",
-		brokerId:         1,
+		brokerID:         1,
 	}
 
 	return &healthCheck{

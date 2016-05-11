@@ -2,8 +2,9 @@ package check
 
 import (
 	"errors"
-	"github.com/golang/mock/gomock"
 	"testing"
+
+	"github.com/golang/mock/gomock"
 )
 
 func Test_tryConnectOnce_WhenConnectSucceeds_GivesConsumerAndProducer(t *testing.T) {
@@ -67,7 +68,7 @@ func Test_tryConnectOnce_WhenCreateConsumerFails_ReturnsError(t *testing.T) {
 	}
 }
 
-func Test_getBrokerPartitionId_WhenTopicDoesExist_ReturnsTopicId(t *testing.T) {
+func Test_getBrokerPartitionID_WhenTopicDoesExist_ReturnsTopicId(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -77,7 +78,7 @@ func Test_getBrokerPartitionId_WhenTopicDoesExist_ReturnsTopicId(t *testing.T) {
 
 	createIfMissing := false
 
-	id, err := check.getBrokerPartitionId(&createIfMissing)
+	id, err := check.getBrokerPartitionID(&createIfMissing)
 
 	if err != nil {
 		t.Error("expected error to be nil, but was", err)
@@ -88,7 +89,7 @@ func Test_getBrokerPartitionId_WhenTopicDoesExist_ReturnsTopicId(t *testing.T) {
 	}
 }
 
-func Test_getBrokerPartitionId_WhenBrokerDoesNotExist_ReturnsError(t *testing.T) {
+func Test_getBrokerPartitionID_WhenBrokerDoesNotExist_ReturnsError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -98,13 +99,13 @@ func Test_getBrokerPartitionId_WhenBrokerDoesNotExist_ReturnsError(t *testing.T)
 
 	createIfMissing := false
 
-	_, err := check.getBrokerPartitionId(&createIfMissing)
+	_, err := check.getBrokerPartitionID(&createIfMissing)
 	if err == nil {
 		t.Error("expected error to be returned, but was nil")
 	}
 }
 
-func Test_getBrokerPartitionId_WhenTopicDoesNotExistAndMayNotCreateIt_ReturnsError(t *testing.T) {
+func Test_getBrokerPartitionID_WhenTopicDoesNotExistAndMayNotCreateIt_ReturnsError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -114,13 +115,13 @@ func Test_getBrokerPartitionId_WhenTopicDoesNotExistAndMayNotCreateIt_ReturnsErr
 	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil).MaxTimes(0)
 	createIfMissing := false
 
-	_, err := check.getBrokerPartitionId(&createIfMissing)
+	_, err := check.getBrokerPartitionID(&createIfMissing)
 	if err == nil {
 		t.Error("expected error to be returned, but was nil")
 	}
 }
 
-func Test_getBrokerPartitionId_WhenTopicDoesNotExistAndMayCreateIt_CreatesTopic(t *testing.T) {
+func Test_getBrokerPartitionID_WhenTopicDoesNotExistAndMayCreateIt_CreatesTopic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -134,13 +135,13 @@ func Test_getBrokerPartitionId_WhenTopicDoesNotExistAndMayCreateIt_CreatesTopic(
 	zookeeper.EXPECT().Close()
 
 	createIfMissing := true
-	_, err := check.getBrokerPartitionId(&createIfMissing)
+	_, err := check.getBrokerPartitionID(&createIfMissing)
 	if err == nil {
 		t.Error("expected error to be returned, but was nil")
 	}
 }
 
-func Test_getBrokerPartitionId_WhenTopicDoesNotExistAndCreatingItFails_ReturnsError(t *testing.T) {
+func Test_getBrokerPartitionID_WhenTopicDoesNotExistAndCreatingItFails_ReturnsError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -150,7 +151,7 @@ func Test_getBrokerPartitionId_WhenTopicDoesNotExistAndCreatingItFails_ReturnsEr
 
 	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, errors.New("test error"))
 	createIfMissing := true
-	_, err := check.getBrokerPartitionId(&createIfMissing)
+	_, err := check.getBrokerPartitionID(&createIfMissing)
 	if err == nil {
 		t.Error("expected error to be returned, but was nil")
 	}

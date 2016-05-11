@@ -3,11 +3,12 @@ package check
 import (
 	"errors"
 	"fmt"
-	"github.com/optiopay/kafka/proto"
-	"github.com/samuel/go-zookeeper/zk"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/optiopay/kafka/proto"
+	"github.com/samuel/go-zookeeper/zk"
 )
 
 func (check *healthCheck) connect(firstConnection bool, stop <-chan struct{}) error {
@@ -21,7 +22,7 @@ func (check *healthCheck) connect(firstConnection bool, stop <-chan struct{}) er
 				return nil
 			}
 		case <-stop:
-			return errors.New("connect was asked to stop.")
+			return errors.New("connect was asked to stop")
 		}
 	}
 }
@@ -36,7 +37,7 @@ func (check *healthCheck) tryConnectOnce(createIfMissing *bool) error {
 		return err
 	}
 
-	check.partitionId, err = check.getBrokerPartitionId(createIfMissing)
+	check.partitionID, err = check.getBrokerPartitionID(createIfMissing)
 	if err != nil {
 		log.Printf("%s retrying in %s", err.Error(), pauseTime)
 		check.broker.Close()
@@ -57,16 +58,16 @@ func (check *healthCheck) tryConnectOnce(createIfMissing *bool) error {
 	return nil
 }
 
-func (check *healthCheck) getBrokerPartitionId(createIfMissing *bool) (int32, error) {
-	brokerId := int32(check.config.brokerId)
+func (check *healthCheck) getBrokerPartitionID(createIfMissing *bool) (int32, error) {
+	brokerID := int32(check.config.brokerID)
 
 	metadata, err := check.broker.Metadata()
 	if err != nil {
-		return 0, errors.New(fmt.Sprintf("failure retrieving metadata: %s.", err.Error()))
+		return 0, fmt.Errorf("failure retrieving metadata: %s", err.Error())
 	}
 
 	if !check.brokerExists(metadata) {
-		return 0, errors.New(fmt.Sprintf("unable to find broker %d in metadata.", brokerId))
+		return 0, fmt.Errorf("unable to find broker %d in metadata", brokerID)
 	}
 
 	for _, topic := range metadata.Topics {
@@ -75,10 +76,10 @@ func (check *healthCheck) getBrokerPartitionId(createIfMissing *bool) (int32, er
 		}
 
 		for _, partition := range topic.Partitions {
-			if partition.Leader != brokerId {
+			if partition.Leader != brokerID {
 				continue
 			}
-			log.Printf("found partition id %d for broker %d", partition.ID, brokerId)
+			log.Printf("found partition id %d for broker %d", partition.ID, brokerID)
 			return partition.ID, nil
 		}
 	}
@@ -86,21 +87,19 @@ func (check *healthCheck) getBrokerPartitionId(createIfMissing *bool) (int32, er
 	if *createIfMissing {
 		err = check.createHealthCheckTopic()
 		if err != nil {
-			return 0, errors.New(fmt.Sprintf("unable to create health check topic \"%s\": %s.", check.config.topicName, err))
-		} else {
-			log.Printf("health check topic \"%s\" created for broker %d", check.config.topicName, brokerId)
-			*createIfMissing = false
-			return 0, errors.New("health check topic created, try again.")
+			return 0, fmt.Errorf("unable to create health check topic \"%s\": %s", check.config.topicName, err)
 		}
-	} else {
-		return 0, errors.New(fmt.Sprintf("unable to find topic and parition for broker %d in metadata.", brokerId))
+		log.Printf("health check topic \"%s\" created for broker %d", check.config.topicName, brokerID)
+		*createIfMissing = false
+		return 0, errors.New("health check topic created, try again")
 	}
+	return 0, fmt.Errorf("unable to find topic and parition for broker %d in metadata", brokerID)
 }
 
 func (check *healthCheck) brokerExists(metadata *proto.MetadataResp) bool {
-	brokerId := int32(check.config.brokerId)
+	brokerID := int32(check.config.brokerID)
 	for _, broker := range metadata.Brokers {
-		if broker.NodeID == brokerId {
+		if broker.NodeID == brokerID {
 			return true
 		}
 	}
@@ -139,8 +138,8 @@ func (check *healthCheck) createHealthCheckTopic() error {
 		return err
 	}
 
-	brokerId := int32(check.config.brokerId)
-	partitionAssignment := `{"version":1,"partitions":{"0":[` + fmt.Sprintf("%d", brokerId) + `]}}`
+	brokerID := int32(check.config.brokerID)
+	partitionAssignment := `{"version":1,"partitions":{"0":[` + fmt.Sprintf("%d", brokerID) + `]}}`
 	log.Println("creating topic", check.config.topicName, "partition assignment node")
 	err = createZkNode(check.zookeeper, chroot+"/brokers/topics/"+check.config.topicName, partitionAssignment)
 	return err
