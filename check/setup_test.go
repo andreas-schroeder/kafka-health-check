@@ -177,6 +177,28 @@ func Test_createHealthCheckTopic_WhenTopicCreationSuccessful_ReturnsNoError(t *t
 	}
 }
 
+func Test_zookeeperEnsembleAndChroot_WhenWithChroot_ReturnsEnsembleAndChroot(t *testing.T) {
+	ensemble, chroot := zookeeperEnsembleAndChroot("localhost:2181,localhost:2182/env/one")
+
+	if len(ensemble) != 2 {
+		t.Error("expected ensemble to have size 2, but has size", len(ensemble))
+	}
+	if chroot != "/env/one" {
+		t.Error("expected chroot to be /env/one, but was", chroot)
+	}
+}
+
+func Test_zookeeperEnsembleAndChroot_WhenWithChrootWithTrailingSlash_ReturnsEnsembleAndChroot(t *testing.T) {
+	ensemble, chroot := zookeeperEnsembleAndChroot("localhost:2181,localhost:2182/env/one/")
+
+	if len(ensemble) != 2 {
+		t.Error("expected ensemble to have size 2, but has size", len(ensemble))
+	}
+	if chroot != "/env/one" {
+		t.Error("expected chroot to be /env/one, but was", chroot)
+	}
+}
+
 func Test_createHealthCheckTopic_WhenZookeeperConnectionFails_ReturnsError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

@@ -116,6 +116,9 @@ func zookeeperEnsembleAndChroot(connectString string) (ensemble []string, chroot
 	default:
 		ensemble = strings.Split(result[0], ",")
 		chroot = "/" + strings.Join(result[1:], "/")
+		if strings.HasSuffix(chroot, "/") {
+			chroot = chroot[:len(chroot)-1]
+		}
 	}
 	return
 }
