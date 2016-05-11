@@ -2,6 +2,7 @@ package check
 
 import (
 	"github.com/golang/mock/gomock"
+	"sync"
 	"testing"
 )
 
@@ -10,7 +11,7 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 	defer ctrl.Finish()
 
 	stop := make(chan struct{})
-	defer close(stop)
+	awaitCheck := sync.WaitGroup{}
 
 	check := newTestCheck()
 	connection := workingBroker(check, ctrl, check.config.topicName, stop)
@@ -18,13 +19,20 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 	connection.EXPECT().Consumer(gomock.Any()).Return(check.consumer, nil)
 	connection.EXPECT().Producer(gomock.Any()).Return(check.producer)
 	connection.EXPECT().Metadata().Return(healthyMetadata(check.config.topicName), nil)
-	connection.EXPECT().Close().AnyTimes()
+	connection.EXPECT().Close()
 
 	statusUpdates := make(chan string)
 	defer close(statusUpdates)
 
-	go check.CheckHealth(statusUpdates, stop)
+	awaitCheck.Add(1)
+	go func() {
+		check.CheckHealth(statusUpdates, stop)
+		awaitCheck.Done()
+	}()
+
 	status := <-statusUpdates
+	close(stop)
+	awaitCheck.Wait()
 
 	if status != healthy {
 		t.Errorf("checkHealts reported status as %s, expected %s", status, healthy)
