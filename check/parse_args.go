@@ -16,6 +16,7 @@ func (check *healthCheck) ParseCommandLineArguments() {
 	flag.StringVar(&check.config.zookeeperConnect, "zookeeper", "", "ZooKeeper connect string (e.g. node1:2181,node2:2181,.../chroot)")
 	flag.StringVar(&check.config.topicName, "topic", "", "name of the topic to use - use one per broker, defaults to broker-<id>-health-check")
 	flag.DurationVar(&check.config.CheckInterval, "check-interval", 10*time.Second, "how frequently to perform health checks")
+	flag.BoolVar(&check.config.NoTopicCreation, "no-topic-creation", false, "disable automatic topic creation and deletion.")
 	flag.Parse()
 	l := log.New(os.Stderr, "", 0)
 	valid := check.validateConfig(l)

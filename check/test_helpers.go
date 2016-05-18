@@ -18,6 +18,7 @@ func newTestCheck() *healthCheck {
 		retryInterval:    1 * time.Millisecond,
 		CheckTimeout:     5 * time.Millisecond,
 		DataWaitInterval: 1 * time.Millisecond,
+		NoTopicCreation:  true,
 		topicName:        "health-check",
 		brokerID:         1,
 	}

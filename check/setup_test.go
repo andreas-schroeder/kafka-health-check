@@ -247,6 +247,56 @@ func Test_createHealthCheckTopic_WhenCreatingTopicPartitionsFails_ReturnsError(t
 	}
 }
 
+func Test_deleteHealthCheckTopic_WhenDeleteSucceeds_ReturnsNoError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	check, zookeeper := newZkTestCheck(ctrl)
+	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil)
+	zookeeper.mockSuccessfulPathCreation("/admin/delete_topics/health-check")
+	zookeeper.EXPECT().Exists("/admin/delete_topics/health-check").Return(true, nil, nil).Return(false, nil, nil)
+	zookeeper.EXPECT().Close()
+
+	err := check.deleteHealthCheckTopic()
+
+	if err != nil {
+		t.Error("expected error to be nil, but was", err)
+	}
+}
+
+func Test_deleteHealthCheckTopic_WhenCreateDeleteNodeFails_ReturnsError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	check, zookeeper := newZkTestCheck(ctrl)
+	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil)
+	zookeeper.mockFailingPathCreation("/admin/delete_topics/health-check")
+	zookeeper.EXPECT().Close()
+
+	err := check.deleteHealthCheckTopic()
+
+	if err == nil {
+		t.Error("expected error to be returned, but was nil")
+	}
+}
+
+func Test_deleteHealthCheckTopic_WhenExistsFails_ReturnsError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	check, zookeeper := newZkTestCheck(ctrl)
+	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil)
+	zookeeper.mockSuccessfulPathCreation("/admin/delete_topics/health-check")
+	zookeeper.EXPECT().Exists("/admin/delete_topics/health-check").Return(false, nil, errors.New("test error"))
+	zookeeper.EXPECT().Close()
+
+	err := check.deleteHealthCheckTopic()
+
+	if err == nil {
+		t.Error("expected error to be returned, but was nil")
+	}
+}
+
 func Test_createZkNode_WhenNodeCreationSucceeds_ReturnsNoError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

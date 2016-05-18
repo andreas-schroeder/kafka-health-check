@@ -153,7 +153,7 @@ func createZkNode(zookeeper ZkConnection, path string, content string) error {
 	}
 
 	if nodeExists {
-		return errors.New(fmt.Sprintf("node %s cannot be created, exists already", path))
+		return fmt.Errorf("node %s cannot be created, exists already", path)
 	}
 
 	log.Println("creating node ", path)
@@ -163,11 +163,46 @@ func createZkNode(zookeeper ZkConnection, path string, content string) error {
 	return err
 }
 
-func (check *healthCheck) close() {
+func (check *healthCheck) close(deleteTopicIfPresent bool) {
+	if deleteTopicIfPresent {
+		check.deleteHealthCheckTopic()
+	}
 	check.broker.Close()
 }
 
+func (check *healthCheck) deleteHealthCheckTopic() error {
+	log.Printf("connecting to ZooKeeper ensemble %s", check.config.zookeeperConnect)
+	connectString, chroot := zookeeperEnsembleAndChroot(check.config.zookeeperConnect)
+	_, err := check.zookeeper.Connect(connectString, 10*time.Second)
+	if err != nil {
+		return err
+	}
+	defer check.zookeeper.Close()
+
+	topicPath := chroot + "/admin/delete_topics/" + check.config.topicName
+
+	err = createZkNode(check.zookeeper, topicPath, "")
+	if err != nil {
+		return err
+	}
+
+	return check.waitForTopicDeletion(topicPath)
+}
+
+func (check *healthCheck) waitForTopicDeletion(topicPath string) error {
+	for {
+		exists, _, err := check.zookeeper.Exists(topicPath)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return nil
+		}
+		time.Sleep(check.config.retryInterval)
+	}
+}
+
 func (check *healthCheck) reconnect(stop <-chan struct{}) error {
-	check.close()
+	check.close(false)
 	return check.connect(false, stop)
 }

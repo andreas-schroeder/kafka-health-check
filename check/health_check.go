@@ -19,11 +19,13 @@ type healthCheck struct {
 	randSrc     rand.Source
 }
 
+// HealthCheckConfig is the configuration for the health check.
 type HealthCheckConfig struct {
 	MessageLength    int
 	CheckInterval    time.Duration
 	CheckTimeout     time.Duration
 	DataWaitInterval time.Duration
+	NoTopicCreation  bool
 	retryInterval    time.Duration
 	topicName        string
 	brokerID         uint
@@ -32,6 +34,7 @@ type HealthCheckConfig struct {
 	statusServerPort uint
 }
 
+// New creates a new health check with the given config.
 func New(config HealthCheckConfig) *healthCheck {
 	return &healthCheck{
 		broker:    &kafkaBrokerConnection{},
@@ -70,11 +73,12 @@ const (
 
 // periodically checks health of the Kafka broker
 func (check *healthCheck) CheckHealth(statusUpdates chan<- string, stop <-chan struct{}) {
-	err := check.connect(true, stop)
+	manageTopic := !check.config.NoTopicCreation
+	err := check.connect(manageTopic, stop)
 	if err != nil {
 		return
 	}
-	defer check.close()
+	defer check.close(manageTopic)
 
 	check.randSrc = rand.NewSource(time.Now().UnixNano())
 

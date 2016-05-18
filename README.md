@@ -16,6 +16,8 @@ kafka-health-check usage:
     	Kafka broker port (default 9092)
   -check-interval duration
     	how frequently to perform health checks (default 10s)
+  -no-topic-creation
+    	disable automatic topic creation and deletion.
   -server-port uint
     	port to open for http health status queries (default 8000)
   -topic string
@@ -45,6 +47,10 @@ Run `make` to build after running `make deps` to restore the dependencies using 
 * When first started, the checker tries to find the Kafka broker to check in the cluster metadata. Then, it tries to
   find the health check topic, and creates it if missing by communicating directly with ZooKeeper(configuration:
   10 seconds message lifetime, one single partition assigned to the broker to check).
+  This behavior can be disabled by using `-no-topic-creation`.
+
+* When shutting down, the checker deletes to health check topic partition by communicating directly with ZooKeeper.
+  This behavior can be disabled by using `-no-topic-creation`.
 
 * The check will try to create the health check topic only on its first connection after startup. If the topic
   disappears later while the check is running, it will not try to re-create its health check topic.

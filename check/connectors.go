@@ -8,7 +8,7 @@ import (
 	"github.com/samuel/go-zookeeper/zk"
 )
 
-// Connection to the Kafka broker
+// BrokerConnection represents a connection to the Kafka broker
 type BrokerConnection interface {
 	Dial(nodeAddresses []string, conf kafka.BrokerConf) error
 
@@ -51,7 +51,7 @@ func (connection *kafkaBrokerConnection) Close() {
 	connection.broker.Close()
 }
 
-// Connection to ZooKeeper ensemble
+// ZkConnection represents a connection to a ZooKeeper ensemble
 type ZkConnection interface {
 	Connect(servers []string, sessionTimeout time.Duration) (<-chan zk.Event, error)
 	Close()
