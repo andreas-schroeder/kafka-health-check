@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/andreas-schroeder/kafka-health-check/check"
@@ -24,10 +25,12 @@ func addShutdownHook() (chan struct{}, sync.WaitGroup) {
 	awaitCheck := sync.WaitGroup{}
 	awaitCheck.Add(1)
 
-	interrupts := make(chan os.Signal, 1)
-	signal.Notify(interrupts, os.Interrupt)
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt)
+	signal.Notify(shutdown, os.Kill)
+	signal.Notify(shutdown, syscall.SIGTERM)
 	go func() {
-		for _ = range interrupts {
+		for _ = range shutdown {
 			close(stop)
 			awaitCheck.Wait()
 		}
