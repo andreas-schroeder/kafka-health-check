@@ -27,7 +27,6 @@ func addShutdownHook() (chan struct{}, sync.WaitGroup) {
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt)
-	signal.Notify(shutdown, os.Kill)
 	signal.Notify(shutdown, syscall.SIGTERM)
 	go func() {
 		for _ = range shutdown {
