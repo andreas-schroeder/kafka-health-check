@@ -91,6 +91,72 @@ func healthyMetadata(topicName string) *proto.MetadataResp {
 	}
 }
 
+func outOfSyncMetadata() *proto.MetadataResp {
+	return &proto.MetadataResp{
+		CorrelationID: int32(1),
+		Brokers: []proto.MetadataRespBroker{
+			proto.MetadataRespBroker{
+				NodeID: int32(2),
+				Host:   "10.0.0.5",
+				Port:   int32(9092),
+			},
+			proto.MetadataRespBroker{
+				NodeID: int32(1),
+				Host:   "localhost",
+				Port:   int32(9092),
+			},
+		},
+		Topics: []proto.MetadataRespTopic{
+			proto.MetadataRespTopic{
+				Name: "some-topic",
+				Err:  nil,
+				Partitions: []proto.MetadataRespPartition{
+					proto.MetadataRespPartition{
+						ID:       1,
+						Err:      nil,
+						Leader:   int32(2),
+						Replicas: []int32{2, 1},
+						Isrs:     []int32{2},
+					},
+				},
+			},
+		},
+	}
+}
+
+func inSyncMetadata() *proto.MetadataResp {
+	return &proto.MetadataResp{
+		CorrelationID: int32(1),
+		Brokers: []proto.MetadataRespBroker{
+			proto.MetadataRespBroker{
+				NodeID: int32(2),
+				Host:   "10.0.0.5",
+				Port:   int32(9092),
+			},
+			proto.MetadataRespBroker{
+				NodeID: int32(1),
+				Host:   "localhost",
+				Port:   int32(9092),
+			},
+		},
+		Topics: []proto.MetadataRespTopic{
+			proto.MetadataRespTopic{
+				Name: "some-topic",
+				Err:  nil,
+				Partitions: []proto.MetadataRespPartition{
+					proto.MetadataRespPartition{
+						ID:       1,
+						Err:      nil,
+						Leader:   int32(2),
+						Replicas: []int32{2, 1},
+						Isrs:     []int32{2, 1},
+					},
+				},
+			},
+		},
+	}
+}
+
 func metadataWithoutBroker() *proto.MetadataResp {
 	return &proto.MetadataResp{
 		CorrelationID: int32(1),

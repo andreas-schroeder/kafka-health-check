@@ -1,7 +1,10 @@
 # Kafka Health Check
 
-Health checker for Kafka that operates by inserting a message in a dedicated health check topic and waiting for it to
-become available on the consumer side.
+Health checker for Kafka that operates by
+
+* inserting a message in a dedicated health check topic and waiting for it to
+become available on the consumer side, and
+* checking if the broker is in the in-sync replica set for all partitions it replicates.
 
 ## Status
 [![Build Status](https://travis-ci.org/andreas-schroeder/kafka-health-check.svg?branch=master)](https://travis-ci.org/andreas-schroeder/kafka-health-check)
@@ -56,4 +59,7 @@ Run `make` to build after running `make deps` to restore the dependencies using 
   disappears later while the check is running, it will not try to re-create its health check topic.
 
 * The check opens a port accepting http requests on a given port (default 8000). The return codes and response bodies
-are 200 with `imok` for a healthy broker and 500 with `nook` for an unhealthy one.
+are:
+  * `200` with `sync` for a healthy broker that is fully in sync with all leaders.
+  * `200` with `imok` for a healthy broker.
+  * `500` with `nook` for an unhealthy one.

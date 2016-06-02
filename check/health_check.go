@@ -67,6 +67,7 @@ func (check *healthCheck) producerConfig() kafka.ProducerConf {
 }
 
 const (
+	insync    = "sync"
 	healthy   = "imok"
 	unhealthy = "nook"
 )
@@ -119,6 +120,10 @@ func (check *healthCheck) doOneCheck() string {
 		status = check.waitForMessage(message)
 	}
 
+	if status == healthy && check.brokerInSync() {
+		status = insync
+	}
+
 	return status
 }
 
@@ -142,6 +147,36 @@ func (check *healthCheck) waitForMessage(message *proto.Message) string {
 		}
 	}
 	return unhealthy
+}
+
+// checks whether the broker is in all ISRs of all partitions it replicates.
+func (check *healthCheck) brokerInSync() bool {
+	metadata, err := check.broker.Metadata()
+	if err != nil {
+		log.Println("metadata could not be retrieved, broker assumed out of sync:", err)
+		return false
+	}
+
+	contains := func(arr []int32, id int32) bool {
+		for _, e := range arr {
+			if e == id {
+				return true
+			}
+		}
+		return false
+	}
+
+	brokerID := int32(check.config.brokerID)
+
+	for _, topic := range metadata.Topics {
+		for _, partition := range topic.Partitions {
+			if contains(partition.Replicas, brokerID) && !contains(partition.Isrs, brokerID) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 // creates a random message payload.

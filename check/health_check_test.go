@@ -15,7 +15,8 @@ func Test_doOneCheck_WhenProducedMessageIsConsumed_ReturnsHealthy(t *testing.T) 
 	defer close(stop)
 
 	check := newTestCheck()
-	_ = workingBroker(check, ctrl, check.config.topicName, stop)
+	connection := workingBroker(check, ctrl, check.config.topicName, stop)
+	connection.EXPECT().Metadata().Return(outOfSyncMetadata(), nil).AnyTimes()
 
 	status := check.doOneCheck()
 
@@ -36,6 +37,23 @@ func Test_doOneCheck_WhenProducedMessageIsNotConsumed_ReturnsUnhealthy(t *testin
 
 	if status != unhealthy {
 		t.Errorf("doOneCheck returned %s, expected %s", status, unhealthy)
+	}
+}
+
+func Test_doOneCheck_WhenProducedMessageIsConsumedAndInSync_ReturnsInSync(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	stop := make(chan struct{})
+	defer close(stop)
+
+	check := newTestCheck()
+	connection := workingBroker(check, ctrl, check.config.topicName, stop)
+	connection.EXPECT().Metadata().Return(inSyncMetadata(), nil).AnyTimes()
+
+	status := check.doOneCheck()
+
+	if status != insync {
+		t.Errorf("doOneCheck returned %s, expected %s", status, insync)
 	}
 }
 

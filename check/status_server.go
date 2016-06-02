@@ -20,6 +20,8 @@ func (check *healthCheck) ServeBrokerHealth() chan<- string {
 			case update := <-statusUpdates:
 				if status != update {
 					switch update {
+					case insync:
+						log.Println("broker now reported as in sync")
 					case unhealthy:
 						log.Println("broker now reported as unhealthy")
 					case healthy:
@@ -39,10 +41,10 @@ func (check *healthCheck) ServeBrokerHealth() chan<- string {
 			responseChannel := make(chan string)
 			statusRequests <- responseChannel
 			currentStatus := <-responseChannel
-			if currentStatus == healthy {
-				io.WriteString(writer, currentStatus)
-			} else {
+			if currentStatus == unhealthy {
 				http.Error(writer, currentStatus, 501)
+			} else {
+				io.WriteString(writer, currentStatus+"\n")
 			}
 		})
 	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
