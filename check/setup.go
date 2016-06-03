@@ -49,7 +49,6 @@ func (check *HealthCheck) tryConnectOnce(createIfMissing *bool) error {
 		log.Printf("unable to create consumer, retrying in %s (%s)", pauseTime.String(), err)
 		check.broker.Close()
 		return err
-		return err
 	}
 
 	producer := check.broker.Producer(check.producerConfig())
