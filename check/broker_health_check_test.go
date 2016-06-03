@@ -8,7 +8,7 @@ import (
 	"github.com/optiopay/kafka"
 )
 
-func Test_doOneCheck_WhenProducedMessageIsConsumed_ReturnsHealthy(t *testing.T) {
+func Test_checkBrokerHealth_WhenProducedMessageIsConsumed_ReturnsHealthy(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	stop := make(chan struct{})
@@ -18,14 +18,14 @@ func Test_doOneCheck_WhenProducedMessageIsConsumed_ReturnsHealthy(t *testing.T) 
 	connection := workingBroker(check, ctrl, check.config.topicName, stop)
 	connection.EXPECT().Metadata().Return(outOfSyncMetadata(), nil).AnyTimes()
 
-	status := check.doOneCheck()
+	status := check.checkBrokerHealth()
 
 	if status != healthy {
-		t.Errorf("doOneCheck returned %s, expected %s", status, healthy)
+		t.Errorf("checkBrokerHealth returned %s, expected %s", status, healthy)
 	}
 }
 
-func Test_doOneCheck_WhenProducedMessageIsNotConsumed_ReturnsUnhealthy(t *testing.T) {
+func Test_checkBrokerHealth_WhenProducedMessageIsNotConsumed_ReturnsUnhealthy(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -33,14 +33,14 @@ func Test_doOneCheck_WhenProducedMessageIsNotConsumed_ReturnsUnhealthy(t *testin
 	stop := brokenBroker(check, ctrl, check.config.topicName)
 	defer close(stop)
 
-	status := check.doOneCheck()
+	status := check.checkBrokerHealth()
 
 	if status != unhealthy {
-		t.Errorf("doOneCheck returned %s, expected %s", status, unhealthy)
+		t.Errorf("checkBrokerHealth returned %s, expected %s", status, unhealthy)
 	}
 }
 
-func Test_doOneCheck_WhenProducedMessageIsConsumedAndInSync_ReturnsInSync(t *testing.T) {
+func Test_checkBrokerHealth_WhenProducedMessageIsConsumedAndInSync_ReturnsInSync(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	stop := make(chan struct{})
@@ -50,14 +50,14 @@ func Test_doOneCheck_WhenProducedMessageIsConsumedAndInSync_ReturnsInSync(t *tes
 	connection := workingBroker(check, ctrl, check.config.topicName, stop)
 	connection.EXPECT().Metadata().Return(inSyncMetadata(), nil).AnyTimes()
 
-	status := check.doOneCheck()
+	status := check.checkBrokerHealth()
 
 	if status != insync {
-		t.Errorf("doOneCheck returned %s, expected %s", status, insync)
+		t.Errorf("checkBrokerHealth returned %s, expected %s", status, insync)
 	}
 }
 
-func workingBroker(check *healthCheck, ctrl *gomock.Controller, topicName string, stop <-chan struct{}) *MockBrokerConnection {
+func workingBroker(check *HealthCheck, ctrl *gomock.Controller, topicName string, stop <-chan struct{}) *MockBrokerConnection {
 	connection, broker, consumer, _ := mockBroker(check, ctrl, topicName)
 
 	go func() {
@@ -80,7 +80,7 @@ func workingBroker(check *healthCheck, ctrl *gomock.Controller, topicName string
 	return connection
 }
 
-func brokenBroker(check *healthCheck, ctrl *gomock.Controller, topicName string) chan struct{} {
+func brokenBroker(check *HealthCheck, ctrl *gomock.Controller, topicName string) chan struct{} {
 	_, broker, consumer, _ := mockBroker(check, ctrl, topicName)
 
 	stop := make(chan struct{})

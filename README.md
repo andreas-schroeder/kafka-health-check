@@ -1,10 +1,12 @@
 # Kafka Health Check
 
-Health checker for Kafka that operates by
+Health checker for Kafka brokers and clusters that operates by
 
 * inserting a message in a dedicated health check topic and waiting for it to
-become available on the consumer side, and
-* checking if the broker is in the in-sync replica set for all partitions it replicates.
+become available on the consumer side,
+* checking whether the broker is in the in-sync replica set for all partitions it replicates,
+* checking whether under-repicated partitions exist, and
+* checking whether offline partitions exist.
 
 ## Status
 [![Build Status](https://travis-ci.org/andreas-schroeder/kafka-health-check.svg?branch=master)](https://travis-ci.org/andreas-schroeder/kafka-health-check)
@@ -29,6 +31,36 @@ kafka-health-check usage:
     	ZooKeeper connect string (e.g. node1:2181,node2:2181,.../chroot)
 ```
 
+## Broker Health
+
+Broker health can be queried at `/`:
+
+```
+$ curl -s localhost:8000/
+sync
+```
+
+Return codes and response bodies are:
+* `200` with `sync` for a healthy broker that is fully in sync with all leaders.
+* `200` with `imok` for a healthy broker that replays messages of its health
+                    check topic, but is not fully in sync.
+* `500` with `nook` for an unhealthy broker that fails to replay messages in its health
+  check topic within [100 milliseconds](./main.go#L42).
+
+## Cluster Health
+
+Cluster health can be queried at `/cluster`:
+
+```
+$ curl -s localhost:8000/cluster
+green
+```
+
+Return codes and response bodies are:
+* `200` with `green`  if all replicas of all partitions of all topics are in sync.
+* `200` with `yellow` if one or more partitions are under-replicated.
+* `500` with `red` if one or more partitions are offline.
+
 ## Supported Kafka Versions
 
 Tested with the following Kafka versions:
@@ -51,15 +83,8 @@ Run `make` to build after running `make deps` to restore the dependencies using 
   find the health check topic, and creates it if missing by communicating directly with ZooKeeper(configuration:
   10 seconds message lifetime, one single partition assigned to the broker to check).
   This behavior can be disabled by using `-no-topic-creation`.
-
 * When shutting down, the checker deletes to health check topic partition by communicating directly with ZooKeeper.
   This behavior can be disabled by using `-no-topic-creation`.
-
 * The check will try to create the health check topic only on its first connection after startup. If the topic
   disappears later while the check is running, it will not try to re-create its health check topic.
-
-* The check opens a port accepting http requests on a given port (default 8000). The return codes and response bodies
-are:
-  * `200` with `sync` for a healthy broker that is fully in sync with all leaders.
-  * `200` with `imok` for a healthy broker.
-  * `500` with `nook` for an unhealthy one.
+* If the broker health check fails, the cluster health will be set to `red`.

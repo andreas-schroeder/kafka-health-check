@@ -9,7 +9,8 @@ import (
 	"time"
 )
 
-func (check *healthCheck) ParseCommandLineArguments() {
+// ParseCommandLineArguments parses the command line arguments.
+func (check *HealthCheck) ParseCommandLineArguments() {
 	flag.UintVar(&check.config.brokerID, "broker-id", 0, "id of the Kafka broker to health check")
 	flag.UintVar(&check.config.brokerPort, "broker-port", 9092, "Kafka broker port")
 	flag.UintVar(&check.config.statusServerPort, "server-port", 8000, "port to open for http health status queries")
@@ -33,7 +34,7 @@ func (check *healthCheck) ParseCommandLineArguments() {
 	}
 }
 
-func (check *healthCheck) validateConfig(l *log.Logger) bool {
+func (check *HealthCheck) validateConfig(l *log.Logger) bool {
 	valid := true
 	if check.config.zookeeperConnect == "" {
 		l.Println("parameter -zookeeper required.")

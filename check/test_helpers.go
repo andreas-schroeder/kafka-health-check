@@ -11,7 +11,7 @@ import (
 	"github.com/optiopay/kafka/proto"
 )
 
-func newTestCheck() *healthCheck {
+func newTestCheck() *HealthCheck {
 	config := HealthCheckConfig{
 		MessageLength:    100,
 		CheckInterval:    1 * time.Millisecond,
@@ -23,13 +23,13 @@ func newTestCheck() *healthCheck {
 		brokerID:         1,
 	}
 
-	return &healthCheck{
+	return &HealthCheck{
 		config:  config,
 		randSrc: rand.NewSource(time.Now().UnixNano()),
 	}
 }
 
-func mockBroker(check *healthCheck, ctrl *gomock.Controller, topicName string) (*MockBrokerConnection, *kafkatest.Broker, *kafkatest.Consumer, kafka.Producer) {
+func mockBroker(check *HealthCheck, ctrl *gomock.Controller, topicName string) (*MockBrokerConnection, *kafkatest.Broker, *kafkatest.Consumer, kafka.Producer) {
 	broker := kafkatest.NewBroker()
 	consumer := &kafkatest.Consumer{
 		Broker:   broker,
@@ -69,8 +69,8 @@ func healthyMetadata(topicName string) *proto.MetadataResp {
 						ID:       1,
 						Err:      nil,
 						Leader:   int32(2),
-						Replicas: []int32{},
-						Isrs:     []int32{},
+						Replicas: []int32{1},
+						Isrs:     []int32{1},
 					},
 				},
 			},
@@ -82,8 +82,8 @@ func healthyMetadata(topicName string) *proto.MetadataResp {
 						ID:       2,
 						Err:      nil,
 						Leader:   int32(1),
-						Replicas: []int32{},
-						Isrs:     []int32{},
+						Replicas: []int32{1, 2},
+						Isrs:     []int32{1, 2},
 					},
 				},
 			},
@@ -157,6 +157,34 @@ func inSyncMetadata() *proto.MetadataResp {
 	}
 }
 
+func offlinecMetadata() *proto.MetadataResp {
+	return &proto.MetadataResp{
+		CorrelationID: int32(1),
+		Brokers: []proto.MetadataRespBroker{
+			proto.MetadataRespBroker{
+				NodeID: int32(1),
+				Host:   "localhost",
+				Port:   int32(9092),
+			},
+		},
+		Topics: []proto.MetadataRespTopic{
+			proto.MetadataRespTopic{
+				Name: "some-topic",
+				Err:  nil,
+				Partitions: []proto.MetadataRespPartition{
+					proto.MetadataRespPartition{
+						ID:       1,
+						Err:      nil,
+						Leader:   int32(2),
+						Replicas: []int32{1},
+						Isrs:     []int32{},
+					},
+				},
+			},
+		},
+	}
+}
+
 func metadataWithoutBroker() *proto.MetadataResp {
 	return &proto.MetadataResp{
 		CorrelationID: int32(1),
@@ -199,7 +227,7 @@ func metadataWithoutTopic() *proto.MetadataResp {
 	}
 }
 
-func newZkTestCheck(ctrl *gomock.Controller) (check *healthCheck, zookeeper *MockZkConnection) {
+func newZkTestCheck(ctrl *gomock.Controller) (check *HealthCheck, zookeeper *MockZkConnection) {
 	check = newTestCheck()
 	check.config.zookeeperConnect = "localhost:2181"
 	zookeeper = NewMockZkConnection(ctrl)

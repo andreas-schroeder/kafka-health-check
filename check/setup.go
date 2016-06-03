@@ -11,7 +11,7 @@ import (
 	"github.com/samuel/go-zookeeper/zk"
 )
 
-func (check *healthCheck) connect(firstConnection bool, stop <-chan struct{}) error {
+func (check *HealthCheck) connect(firstConnection bool, stop <-chan struct{}) error {
 	var createIfMissing = firstConnection
 	ticker := time.NewTicker(check.config.retryInterval)
 	defer ticker.Stop()
@@ -27,7 +27,7 @@ func (check *healthCheck) connect(firstConnection bool, stop <-chan struct{}) er
 	}
 }
 
-func (check *healthCheck) tryConnectOnce(createIfMissing *bool) error {
+func (check *HealthCheck) tryConnectOnce(createIfMissing *bool) error {
 	pauseTime := check.config.retryInterval
 	// connect to kafka cluster
 	connectString := []string{fmt.Sprintf("localhost:%d", check.config.brokerPort)}
@@ -49,6 +49,7 @@ func (check *healthCheck) tryConnectOnce(createIfMissing *bool) error {
 		log.Printf("unable to create consumer, retrying in %s (%s)", pauseTime.String(), err)
 		check.broker.Close()
 		return err
+		return err
 	}
 
 	producer := check.broker.Producer(check.producerConfig())
@@ -58,7 +59,7 @@ func (check *healthCheck) tryConnectOnce(createIfMissing *bool) error {
 	return nil
 }
 
-func (check *healthCheck) getBrokerPartitionID(createIfMissing *bool) (int32, error) {
+func (check *HealthCheck) getBrokerPartitionID(createIfMissing *bool) (int32, error) {
 	brokerID := int32(check.config.brokerID)
 
 	metadata, err := check.broker.Metadata()
@@ -96,7 +97,7 @@ func (check *healthCheck) getBrokerPartitionID(createIfMissing *bool) (int32, er
 	return 0, fmt.Errorf("unable to find topic and parition for broker %d in metadata", brokerID)
 }
 
-func (check *healthCheck) brokerExists(metadata *proto.MetadataResp) bool {
+func (check *HealthCheck) brokerExists(metadata *proto.MetadataResp) bool {
 	brokerID := int32(check.config.brokerID)
 	for _, broker := range metadata.Brokers {
 		if broker.NodeID == brokerID {
@@ -122,7 +123,7 @@ func zookeeperEnsembleAndChroot(connectString string) (ensemble []string, chroot
 	return
 }
 
-func (check *healthCheck) createHealthCheckTopic() error {
+func (check *HealthCheck) createHealthCheckTopic() error {
 	log.Printf("connecting to ZooKeeper ensemble %s", check.config.zookeeperConnect)
 	connectString, chroot := zookeeperEnsembleAndChroot(check.config.zookeeperConnect)
 	_, err := check.zookeeper.Connect(connectString, 10*time.Second)
@@ -163,14 +164,14 @@ func createZkNode(zookeeper ZkConnection, path string, content string) error {
 	return err
 }
 
-func (check *healthCheck) close(deleteTopicIfPresent bool) {
+func (check *HealthCheck) close(deleteTopicIfPresent bool) {
 	if deleteTopicIfPresent {
 		check.deleteHealthCheckTopic()
 	}
 	check.broker.Close()
 }
 
-func (check *healthCheck) deleteHealthCheckTopic() error {
+func (check *HealthCheck) deleteHealthCheckTopic() error {
 	log.Printf("connecting to ZooKeeper ensemble %s", check.config.zookeeperConnect)
 	connectString, chroot := zookeeperEnsembleAndChroot(check.config.zookeeperConnect)
 	_, err := check.zookeeper.Connect(connectString, 10*time.Second)
@@ -189,7 +190,7 @@ func (check *healthCheck) deleteHealthCheckTopic() error {
 	return check.waitForTopicDeletion(topicPath)
 }
 
-func (check *healthCheck) waitForTopicDeletion(topicPath string) error {
+func (check *HealthCheck) waitForTopicDeletion(topicPath string) error {
 	for {
 		exists, _, err := check.zookeeper.Exists(topicPath)
 		if err != nil {
@@ -202,7 +203,7 @@ func (check *healthCheck) waitForTopicDeletion(topicPath string) error {
 	}
 }
 
-func (check *healthCheck) reconnect(stop <-chan struct{}) error {
+func (check *HealthCheck) reconnect(stop <-chan struct{}) error {
 	check.close(false)
 	return check.connect(false, stop)
 }

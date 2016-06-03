@@ -13,10 +13,10 @@ import (
 func main() {
 	healthCheck := check.New(checkConfiguration)
 	healthCheck.ParseCommandLineArguments()
-	updateChannel := healthCheck.ServeBrokerHealth()
+	brokerUpdates, clusterUpdates := healthCheck.ServeHealth()
 
 	stop, awaitCheck := addShutdownHook()
-	healthCheck.CheckHealth(updateChannel, stop)
+	healthCheck.CheckHealth(brokerUpdates, clusterUpdates, stop)
 	awaitCheck.Done()
 }
 
@@ -39,7 +39,7 @@ func addShutdownHook() (chan struct{}, sync.WaitGroup) {
 }
 
 var checkConfiguration = check.HealthCheckConfig{
-	MessageLength:    20,
 	CheckTimeout:     100 * time.Millisecond,
 	DataWaitInterval: 20 * time.Millisecond,
+	MessageLength:    20,
 }

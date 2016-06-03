@@ -7,47 +7,50 @@ import (
 	"net/http"
 )
 
-func (check *healthCheck) ServeBrokerHealth() chan<- string {
+// ServeHealth answers http queries for broker and cluster health.
+func (check *HealthCheck) ServeHealth() (brokerUpdates chan<- string, clusterUpdates chan<- string) {
 	port := check.config.statusServerPort
-	statusUpdates := make(chan string, 2)
-	statusRequests := make(chan chan string)
 
-	// goroutine that encapsulates the current kafka broker status
-	go func() {
-		status := unhealthy
-		for {
-			select {
-			case update := <-statusUpdates:
-				if status != update {
-					switch update {
-					case insync:
-						log.Println("broker now reported as in sync")
-					case unhealthy:
-						log.Println("broker now reported as unhealthy")
-					case healthy:
-						log.Println("broker now reported as healthy")
+	statusServer := func(name string, path string, errorStatus string) chan<- string {
+
+		updates := make(chan string, 2)
+		requests := make(chan chan string)
+
+		// goroutine that encapsulates the current status
+		go func() {
+			status := errorStatus
+			for {
+				select {
+				case update := <-updates:
+					if status != update {
+						log.Println(name, "now reported as", update)
+						status = update
 					}
-				}
-				status = update
-			case request := <-statusRequests:
-				request <- status
-			}
-		}
-	}()
 
-	// handler for http requests
-	http.HandleFunc("/",
-		func(writer http.ResponseWriter, request *http.Request) {
+				case request := <-requests:
+					request <- status
+				}
+			}
+		}()
+
+		http.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
 			responseChannel := make(chan string)
-			statusRequests <- responseChannel
+			requests <- responseChannel
 			currentStatus := <-responseChannel
-			if currentStatus == unhealthy {
-				http.Error(writer, currentStatus, 501)
+			if currentStatus == errorStatus {
+				http.Error(writer, currentStatus, 500)
 			} else {
 				io.WriteString(writer, currentStatus+"\n")
 			}
 		})
+
+		return updates
+	}
+
+	brokerUpdates = statusServer("broker", "/", unhealthy)
+	clusterUpdates = statusServer("cluster", "/cluster", red)
+
 	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 
-	return statusUpdates
+	return
 }

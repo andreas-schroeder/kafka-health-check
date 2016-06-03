@@ -22,20 +22,28 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 	connection.EXPECT().Metadata().Return(healthyMetadata(check.config.topicName), nil).AnyTimes()
 	connection.EXPECT().Close()
 
-	statusUpdates := make(chan string)
-	defer close(statusUpdates)
+	brokerUpdates := make(chan string)
+	defer close(brokerUpdates)
+
+	clusterUpdates := make(chan string)
+	defer close(clusterUpdates)
 
 	awaitCheck.Add(1)
 	go func() {
-		check.CheckHealth(statusUpdates, stop)
+		check.CheckHealth(brokerUpdates, clusterUpdates, stop)
 		awaitCheck.Done()
 	}()
 
-	status := <-statusUpdates
+	brokerStatus := <-brokerUpdates
+	clusterStatus := <-clusterUpdates
 	close(stop)
 	awaitCheck.Wait()
 
-	if status != insync {
-		t.Errorf("checkHealts reported status as %s, expected %s", status, insync)
+	if brokerStatus != insync {
+		t.Errorf("CheckHealth reported broker status as %s, expected %s", brokerStatus, insync)
+	}
+
+	if clusterStatus != green {
+		t.Errorf("CheckHealth reported cluster status as %s, expected %s", clusterStatus, green)
 	}
 }
