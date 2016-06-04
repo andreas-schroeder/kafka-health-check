@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 )
 
 // ServeHealth answers http queries for broker and cluster health.
-func (check *HealthCheck) ServeHealth() (brokerUpdates chan<- string, clusterUpdates chan<- string) {
+func (check *HealthCheck) ServeHealth(brokerUpdates <-chan string, clusterUpdates <-chan string, stop <-chan struct{}) {
 	port := check.config.statusServerPort
 
-	statusServer := func(name string, path string, errorStatus string) chan<- string {
-
-		updates := make(chan string, 2)
+	statusServer := func(name, path, errorStatus string, updates <-chan string) {
 		requests := make(chan chan string)
 
 		// goroutine that encapsulates the current status
@@ -43,14 +42,25 @@ func (check *HealthCheck) ServeHealth() (brokerUpdates chan<- string, clusterUpd
 				io.WriteString(writer, currentStatus+"\n")
 			}
 		})
-
-		return updates
 	}
 
-	brokerUpdates = statusServer("broker", "/", unhealthy)
-	clusterUpdates = statusServer("cluster", "/cluster", red)
+	http.DefaultServeMux = http.NewServeMux()
+	statusServer("broker", "/", unhealthy, brokerUpdates)
+	statusServer("cluster", "/cluster", red, clusterUpdates)
 
-	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		log.Fatal("Unable to listen to port ", port, ": ", err)
+	}
 
+	go func() {
+		for {
+			select {
+			case <-stop:
+				listener.Close()
+			}
+		}
+	}()
+	http.Serve(listener, nil)
 	return
 }

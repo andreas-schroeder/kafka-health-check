@@ -21,6 +21,7 @@ func newTestCheck() *HealthCheck {
 		NoTopicCreation:  true,
 		topicName:        "health-check",
 		brokerID:         1,
+		statusServerPort: 8000,
 	}
 
 	return &HealthCheck{

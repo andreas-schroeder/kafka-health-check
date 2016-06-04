@@ -13,9 +13,10 @@ import (
 func main() {
 	healthCheck := check.New(checkConfiguration)
 	healthCheck.ParseCommandLineArguments()
-	brokerUpdates, clusterUpdates := healthCheck.ServeHealth()
 
 	stop, awaitCheck := addShutdownHook()
+	brokerUpdates, clusterUpdates := make(chan string, 2), make(chan string, 2)
+	go healthCheck.ServeHealth(brokerUpdates, clusterUpdates, stop)
 	healthCheck.CheckHealth(brokerUpdates, clusterUpdates, stop)
 	awaitCheck.Done()
 }
