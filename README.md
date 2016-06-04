@@ -72,7 +72,7 @@ Tested with the following Kafka versions:
 Kafka 0.8 is not supported.
 
 see the [compatibility spec](./compatibility/spec.yaml) for the full list of executed compatibility checks.
-To execute the compatibility checks, run `make compatibility`. Running the checks require Docker 1.9
+To execute the compatibility checks, run `make compatibility`. Running the checks require [Docker](https://www.docker.com/) 1.9
 or newer.
 
 ## Building
