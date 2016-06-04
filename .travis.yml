@@ -1,14 +1,14 @@
 sudo: required
 
-services:
-  - docker
-
 language: go
 
 go:
   - 1.6.2
 
 sudo: false
+
+before_install:
+ - apt-get install docker-engine=1.9
 
 install:
  - make deps
