@@ -9,15 +9,19 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
+	"path"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	"github.com/smallfish/simpleyaml"
-	"os"
 )
 
-type version struct {
+type versionSpec struct {
 	Kafka string
 	Scala string
 }
@@ -29,7 +33,7 @@ func main() {
 	flag.StringVar(&baseDir, "base-dir", "", "directory containing the Java and Kafka docker build contexts")
 	flag.Parse()
 
-	specs := parseSpecs(baseDir)
+	specs := parseVersionSpecs(baseDir)
 
 	buildDocker("java:8", baseDir+"/docker/java")
 
@@ -43,6 +47,8 @@ func main() {
 		successTotal = successTotal && success
 	}
 
+	cleanup(baseDir)
+
 	if successTotal {
 		fmt.Println("PASS")
 	} else {
@@ -51,7 +57,7 @@ func main() {
 	}
 }
 
-func runTest(tag string, spec version, healthCheckCommand string) bool {
+func runTest(tag string, spec versionSpec, healthCheckCommand string) bool {
 	zkID, kafkaID, hcCmd := startAll(tag, healthCheckCommand)
 
 	success := waitForResponse("http://localhost:8000/", "sync")
@@ -75,7 +81,7 @@ func runTest(tag string, spec version, healthCheckCommand string) bool {
 	return success
 }
 
-func startAll(tag string, healthCheckCommand string) (zkID string, kafkaID string, hcCmd *exec.Cmd) {
+func startAll(tag, healthCheckCommand string) (zkID, kafkaID string, hcCmd *exec.Cmd) {
 	versions := strings.Split(tag, ":")[1]
 	zkID = "zk-test-" + versions
 	kafkaID = "kafka-test-" + versions
@@ -115,7 +121,7 @@ func startAll(tag string, healthCheckCommand string) (zkID string, kafkaID strin
 	return
 }
 
-func stopAll(zkID string, kafkaID string, hcCmd *exec.Cmd) {
+func stopAll(zkID, kafkaID string, hcCmd *exec.Cmd) {
 	log.Println("stopping health check...")
 	hcCmd.Process.Kill()
 	hcCmd.Wait()
@@ -147,7 +153,7 @@ func waitForZooKeeper() bool {
 	return false
 }
 
-func waitForResponse(url string, expected string) bool {
+func waitForResponse(url, expected string) bool {
 	for retries := 10; retries > 0; retries-- {
 		if retries < 10 {
 			time.Sleep(1 * time.Second)
@@ -174,12 +180,8 @@ func waitForResponse(url string, expected string) bool {
 
 func buildDocker(tag string, dir string, buildArgs ...string) {
 	log.Print("Docker Build ", tag, "...")
-	args := []string{"build", "-t", tag}
-	for _, buildArg := range buildArgs {
-		args = append(args, "--build-arg")
-		args = append(args, buildArg)
-	}
-	args = append(args, ".") // build context comes last.
+
+	args := dockerBuildArgs(tag, dir, buildArgs)
 
 	cmd := exec.Command("docker", args...)
 	cmd.Dir = dir
@@ -190,7 +192,93 @@ func buildDocker(tag string, dir string, buildArgs ...string) {
 	}
 }
 
-func parseSpecs(baseDir string) (checks []version) {
+func dockerBuildArgs(tag string, dir string, buildArgs []string) (args []string) {
+
+	if len(buildArgs) > 0 && mustReplaceBuildArgs() {
+		dockerfile, err := replaceBuildArgs(dir, buildArgs)
+		if err != nil {
+			log.Fatal("Failed to replace build args: ", err)
+		}
+		args = []string{"build", "-t", tag, "-f", dockerfile, "."}
+	} else {
+		args = []string{"build", "-t", tag}
+		for _, buildArg := range buildArgs {
+			args = append(args, "--build-arg")
+			args = append(args, buildArg)
+		}
+		args = append(args, ".") // build context comes last.
+	}
+	return
+}
+
+const dockerfileRelpacedPrefix = "Dockerfile_replaced_"
+
+// cleaning up intermediately created docker files.
+func cleanup(baseDir string) {
+	filepath.Walk(baseDir+"/docker", func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() && strings.HasPrefix(info.Name(), dockerfileRelpacedPrefix) {
+			return os.Remove(path)
+		}
+		return nil
+	})
+}
+
+func replaceBuildArgs(dir string, buildArgs []string) (fileName string, err error) {
+	// mocking build args that were introduced in Docker 1.9
+	fileBytes, err := ioutil.ReadFile(dir + "/Dockerfile")
+	if err != nil {
+		return
+	}
+	dockerfile := string(fileBytes)
+	// drop all ARG lines.
+	argRe := regexp.MustCompile("(?m)[\r\n]+^ARG .*$")
+	dockerfile = argRe.ReplaceAllString(dockerfile, "")
+
+	// replace all occurrences.
+	for _, buildArg := range buildArgs {
+		split := strings.Split(buildArg, "=")
+		name, value := split[0], split[1]
+		dockerfile = strings.Replace(dockerfile, "$"+name, value, -1)
+		dockerfile = strings.Replace(dockerfile, "${"+name+"}", value, -1)
+	}
+
+	file, err := ioutil.TempFile(dir, dockerfileRelpacedPrefix)
+	fileName = path.Base(file.Name())
+	if err != nil {
+		return
+	}
+
+	_, err = file.WriteString(dockerfile)
+	if err != nil {
+		return
+	}
+	err = file.Close()
+
+	return
+}
+
+// Docker versions prior to 1.9 do not support --build-args
+func mustReplaceBuildArgs() bool {
+	outBytes, err := exec.Command("docker", "-v").CombinedOutput()
+	if err != nil {
+		log.Fatal("unable to determine Docker version: ", err)
+	}
+
+	minDockerVersion, err := version.NewConstraint(">= 1.9")
+	if err != nil {
+		log.Fatal("unable to create Docker version constraint: ", err)
+	}
+
+	versionString := strings.TrimRight(strings.Split(string(outBytes), " ")[2], ",")
+	dockerVersion, err := version.NewVersion(versionString)
+	if err != nil {
+		log.Fatal("unable to parse Docker version from \"", string(outBytes), "\": ", err)
+	}
+	// keep your fingers crossed.
+	return !minDockerVersion.Check(dockerVersion)
+}
+
+func parseVersionSpecs(baseDir string) (specs []versionSpec) {
 	source, err := ioutil.ReadFile(baseDir + "/spec.yaml")
 	if err != nil {
 		log.Fatal("unable to locate and read Kafka/Scala versions file spec.yaml: ", err)
@@ -199,25 +287,25 @@ func parseSpecs(baseDir string) (checks []version) {
 	if err != nil {
 		log.Fatal("unable to parse Kafka/Scala versions file spec.yaml: ", err)
 	}
-	specs, err := yaml.Array()
+	specsYaml, err := yaml.Array()
 	if err != nil {
 		log.Fatal("unable to retrieve list of specs from versions file spec.yaml: ", err)
 	}
 
-	checks = make([]version, 0)
+	specs = make([]versionSpec, 0)
 
-	for i := range specs {
+	for i := range specsYaml {
 		spec := yaml.GetIndex(i)
 		kafkaVersion, err := spec.Get("kafka").String()
 		if err != nil {
-			log.Fatal("unable to access Kafka version in spec no.", (i + 1), " in file spec.yaml: ", err)
+			log.Fatal("unable to access Kafka version in spec no. ", (i + 1), " in file spec.yaml: ", err)
 		}
 		scalaVersions, err := spec.Get("scala").Array()
 		if err != nil {
 			log.Fatal("unable to retrieve list of Scala versions in spec of Kafka version ", kafkaVersion, ": ", err)
 		}
 		for _, scalaVersion := range scalaVersions {
-			checks = append(checks, version{kafkaVersion, scalaVersion.(string)})
+			specs = append(specs, versionSpec{kafkaVersion, scalaVersion.(string)})
 		}
 	}
 
