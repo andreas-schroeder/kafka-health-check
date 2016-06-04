@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/smallfish/simpleyaml"
+	"os"
 )
 
 type version struct {
@@ -46,6 +47,7 @@ func main() {
 		fmt.Println("PASS")
 	} else {
 		fmt.Println("FAIL")
+		os.Exit(1)
 	}
 }
 
