@@ -32,18 +32,24 @@ func main() {
 
 	buildDocker("java:8", baseDir+"/docker/java")
 
+	successTotal := true
 	for _, spec := range specs {
 		fmt.Print("=== RUN checking compatibility with Kafka ", spec.Kafka, " and Scala ", spec.Scala, "...\n")
 		tag := fmt.Sprintf("kafka:%s-%s", spec.Scala, spec.Kafka)
 		buildDocker(tag, baseDir+"/docker/kafka", "scala_version="+spec.Scala, "kafka_version="+spec.Kafka)
 
-		runTest(tag, spec, healthCheckCommand)
+		success := runTest(tag, spec, healthCheckCommand)
+		successTotal = successTotal && success
 	}
 
-	fmt.Println("PASS")
+	if successTotal {
+		fmt.Println("PASS")
+	} else {
+		fmt.Println("FAIL")
+	}
 }
 
-func runTest(tag string, spec version, healthCheckCommand string) {
+func runTest(tag string, spec version, healthCheckCommand string) bool {
 	zkID, kafkaID, hcCmd := startAll(tag, healthCheckCommand)
 
 	success := waitForResponse("http://localhost:8000/", "sync")
@@ -53,7 +59,7 @@ func runTest(tag string, spec version, healthCheckCommand string) {
 		fmt.Println("--- FAIL: Kafka", spec.Kafka, "and Scala", spec.Scala, "broker status wasn't reported as in sync within timeout.")
 
 		stopAll(zkID, kafkaID, hcCmd)
-		return
+		return false
 	}
 
 	success = waitForResponse("http://localhost:8000/cluster", "green")
@@ -64,6 +70,7 @@ func runTest(tag string, spec version, healthCheckCommand string) {
 	}
 
 	stopAll(zkID, kafkaID, hcCmd)
+	return success
 }
 
 func startAll(tag string, healthCheckCommand string) (zkID string, kafkaID string, hcCmd *exec.Cmd) {
