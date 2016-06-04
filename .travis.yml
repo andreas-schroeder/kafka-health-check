@@ -1,3 +1,7 @@
+sudo: required
+
+services:
+  - docker
 
 language: go
 
@@ -11,3 +15,4 @@ install:
 
 script:
   - make test
+  - make compatibility

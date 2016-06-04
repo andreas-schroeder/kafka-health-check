@@ -2,3 +2,4 @@
 *.iml
 kafka-health-check
 vendor/*/
+compatibility/vendor/*/

@@ -65,7 +65,13 @@ Return codes and response bodies are:
 
 Tested with the following Kafka versions:
 
+* 0.10.0.0
 * 0.9.0.1
+* 0.9.0.0
+
+Kafka 0.8 is not supported.
+
+see the [compatibility spec](./compatibility/spec.yaml) for the full list of executed compatibility checks.
 
 ## Building
 
