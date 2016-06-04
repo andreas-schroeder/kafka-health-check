@@ -9,7 +9,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -175,8 +174,6 @@ func buildDocker(tag string, dir string, buildArgs ...string) {
 
 	cmd := exec.Command("docker", args...)
 	cmd.Dir = dir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 
 	if err != nil {
