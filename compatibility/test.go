@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -33,7 +34,7 @@ func main() {
 	buildDocker("java:8", baseDir+"/docker/java")
 
 	for _, spec := range specs {
-		fmt.Println("=== RUN checking compatibility with Kafka ", spec.Kafka, " and Scala ", spec.Scala, "...")
+		fmt.Print("=== RUN checking compatibility with Kafka ", spec.Kafka, " and Scala ", spec.Scala, "...\n")
 		tag := fmt.Sprintf("kafka:%s-%s", spec.Scala, spec.Kafka)
 		buildDocker(tag, baseDir+"/docker/kafka", "scala_version="+spec.Scala, "kafka_version="+spec.Kafka)
 
@@ -163,10 +164,6 @@ func waitForResponse(url string, expected string) bool {
 	return false
 }
 
-func buildKafkaDocker(spec version) {
-
-}
-
 func buildDocker(tag string, dir string, buildArgs ...string) {
 	log.Print("Docker Build ", tag, "...")
 	args := []string{"build", "-t", tag}
@@ -178,8 +175,8 @@ func buildDocker(tag string, dir string, buildArgs ...string) {
 
 	cmd := exec.Command("docker", args...)
 	cmd.Dir = dir
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 
 	if err != nil {
