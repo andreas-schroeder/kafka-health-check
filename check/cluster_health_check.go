@@ -20,11 +20,9 @@ func (check *HealthCheck) checkClusterHealth() string {
 	for _, topic := range metadata.Topics {
 		for _, partition := range topic.Partitions {
 			if len(partition.Isrs) == 0 {
-				log.Println("Topic", topic.Name, "Partition", partition.ID, "is offline")
 				return red // offline partitions exist.
 			}
 			if len(partition.Isrs) < len(partition.Replicas) {
-				log.Println("Topic", topic.Name, "Partition", partition.ID, "is underreplicated")
 				return yellow // under-replicated partitions exist.
 			}
 		}

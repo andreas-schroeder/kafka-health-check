@@ -156,7 +156,7 @@ func createZkNode(zookeeper ZkConnection, path string, content string) error {
 		return fmt.Errorf("node %s cannot be created, exists already", path)
 	}
 
-	log.Println("creating node ", path)
+	log.Println("creating node", path)
 	flags := int32(0) // permanent node.
 	acl := zk.WorldACL(zk.PermAll)
 	_, err = zookeeper.Create(path, []byte(content), flags, acl)
