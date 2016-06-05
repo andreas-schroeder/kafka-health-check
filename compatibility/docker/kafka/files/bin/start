@@ -10,7 +10,7 @@ start_zookeeper() {
 }
 
 start_kafka() {
-  docker_host_ip=$(ip route show | awk '/default/ {print $3}')
+  docker_host_ip=$(ip address | awk '/scope global/ { print $2 }' | sed s:/16::)
   sed -r -i "s/(^|^#)(advertised\.host\.name)=(.*)/\2=${docker_host_ip}/g" config/server.properties
   bin/kafka-server-start.sh config/server.properties
 }
