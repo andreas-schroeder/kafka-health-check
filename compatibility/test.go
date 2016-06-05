@@ -103,7 +103,8 @@ func startAll(tag, healthCheckCommand string) (zkID, kafkaID string, hcCmd *exec
 	}
 
 	log.Print("Starting Kafka...")
-	err = exec.Command("docker", "run", "-d", "--name", kafkaID, "-p", "9092:9092", tag).Run()
+	err = exec.Command("docker", "run", "-d", "--name", kafkaID, "-p", "9092:9092",
+		"--link", zkID+":zookeeper", tag).Run()
 	if err != nil {
 		log.Fatal("Failed to start Kafka: ", err)
 	}
