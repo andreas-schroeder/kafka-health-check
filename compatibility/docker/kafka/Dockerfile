@@ -1,4 +1,4 @@
-FROM java:8
+FROM anapsix/alpine-java
 
 MAINTAINER Andreas Schroeder, https://github.com/andreas-schroeder
 

@@ -35,8 +35,6 @@ func main() {
 
 	specs := parseVersionSpecs(baseDir)
 
-	buildDocker("java:8", baseDir+"/docker/java")
-
 	successTotal := true
 	for _, spec := range specs {
 		fmt.Print("=== RUN checking compatibility with Kafka ", spec.Kafka, " and Scala ", spec.Scala, "...\n")
