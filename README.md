@@ -65,6 +65,7 @@ Return codes and response bodies are:
 
 Tested with the following Kafka versions:
 
+* 0.10.0.1
 * 0.10.0.0
 * 0.9.0.1
 * 0.9.0.0
