@@ -50,10 +50,6 @@ func (check *HealthCheck) validateConfig(l *log.Logger) bool {
 		l.Println("parameter -zookeeper required.")
 		valid = false
 	}
-	if check.config.brokerID == 0 {
-		l.Println("parameter -broker-id required.")
-		valid = false
-	}
 	if check.config.topicName != "" && !validTopicName(check.config.topicName) {
 		l.Println("topic name", check.config.topicName, "is not a valid Kafka topic name.")
 		valid = false
