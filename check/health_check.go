@@ -1,10 +1,12 @@
 package check
 
 import (
-	"log"
+	log "github.com/Sirupsen/logrus"
 	"math/rand"
 	"time"
 
+	"encoding/json"
+	"fmt"
 	"github.com/optiopay/kafka"
 )
 
@@ -34,6 +36,11 @@ type HealthCheckConfig struct {
 	statusServerPort uint
 }
 
+type Update struct {
+	Status string
+	Data   []byte
+}
+
 // New creates a new health check with the given config.
 func New(config HealthCheckConfig) *HealthCheck {
 	return &HealthCheck{
@@ -45,7 +52,7 @@ func New(config HealthCheckConfig) *HealthCheck {
 }
 
 // CheckHealth checks broker and cluster health.
-func (check *HealthCheck) CheckHealth(brokerUpdates chan<- string, clusterUpdates chan<- string, stop <-chan struct{}) {
+func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdates chan<- Update, stop <-chan struct{}) {
 	manageTopic := !check.config.NoTopicCreation
 	err := check.connect(manageTopic, stop)
 	if err != nil {
@@ -55,7 +62,7 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- string, clusterUpdate
 
 	check.randSrc = rand.NewSource(time.Now().UnixNano())
 
-	log.Println("starting health check loop")
+	log.Info("starting health check loop")
 	ticker := time.NewTicker(check.config.CheckInterval)
 	defer ticker.Stop()
 	for {
@@ -63,24 +70,41 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- string, clusterUpdate
 		case <-ticker.C:
 			brokerStatus := check.checkBrokerHealth()
 
-			brokerUpdates <- brokerStatus
+			data, err := json.Marshal(brokerStatus)
+			if err != nil {
+				log.Warn("Error while marshaling broker status: %s", err.Error())
+				data = simpleStatus(brokerStatus.Status)
+			}
 
-			if brokerStatus == unhealthy {
-				clusterUpdates <- red
-				log.Println("closing connection and reconnecting")
+			brokerUpdates <- Update{brokerStatus.Status, data}
+
+			if brokerStatus.Status == unhealthy {
+				clusterUpdates <- Update{red, simpleStatus(red)}
+				log.Info("closing connection and reconnecting")
 				err := check.reconnect(stop)
 				if err != nil {
-					log.Println("error while reconnecting:", err)
+					log.Info("error while reconnecting:", err)
 					return
 				}
-				log.Println("reconnected")
+				log.Info("reconnected")
 			} else {
-				clusterUpdates <- string(check.checkClusterHealth())
+				clusterStatus := check.checkClusterHealth()
+				data, err := json.Marshal(clusterStatus)
+				if err != nil {
+					log.Warn("Error while marshaling cluster status: %s", err.Error())
+					data = simpleStatus(clusterStatus.Status)
+				}
+
+				clusterUpdates <- Update{clusterStatus.Status, data}
 			}
 		case <-stop:
 			return
 		}
 	}
+}
+
+func simpleStatus(status string) []byte {
+	return []byte(fmt.Sprintf(`{"status": "%s"}`, status))
 }
 
 func contains(arr []int32, id int32) bool {

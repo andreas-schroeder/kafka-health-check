@@ -4,7 +4,6 @@ import (
 	"sync"
 	"testing"
 
-	"encoding/json"
 	"github.com/golang/mock/gomock"
 )
 
@@ -24,10 +23,10 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 	connection.EXPECT().Close()
 	zk.mockHealthyMetadata(check.config.topicName)
 
-	brokerUpdates := make(chan string)
+	brokerUpdates := make(chan Update)
 	defer close(brokerUpdates)
 
-	clusterUpdates := make(chan string)
+	clusterUpdates := make(chan Update)
 	defer close(clusterUpdates)
 
 	awaitCheck.Add(1)
@@ -37,16 +36,15 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 	}()
 
 	brokerStatus := <-brokerUpdates
-	var clusterStatus ClusterStatus
-	json.Unmarshal([]byte(<-clusterUpdates), &clusterStatus)
+	clusterStatus := <-clusterUpdates
 	close(stop)
 	awaitCheck.Wait()
 
-	if brokerStatus != insync {
-		t.Errorf("CheckHealth reported broker status as %s, expected %s", brokerStatus, insync)
+	if brokerStatus.Status != insync {
+		t.Errorf("CheckHealth reported broker status as %s, expected %s", brokerStatus.Status, insync)
 	}
 
 	if clusterStatus.Status != green {
-		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus, green)
+		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus.Status, green)
 	}
 }

@@ -3,7 +3,6 @@ package check
 import (
 	"testing"
 
-	"encoding/json"
 	"github.com/golang/mock/gomock"
 )
 
@@ -18,8 +17,7 @@ func Test_checkClusterHealth_WhenAllMetadataConsistent_ReportsGreen(t *testing.T
 	connection.EXPECT().Metadata().Return(healthyMetadata("some-topic"), nil).AnyTimes()
 	zk.mockHealthyMetadata("some-topic")
 
-	var clusterStatus ClusterStatus
-	json.Unmarshal(check.checkClusterHealth(), &clusterStatus)
+	clusterStatus := check.checkClusterHealth()
 
 	if clusterStatus.Status != green {
 		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus, green)
@@ -37,8 +35,7 @@ func Test_checkClusterHealth_WhenSomePartitionUnderReplicated_ReportsYellow(t *t
 	connection.EXPECT().Metadata().Return(underReplicatedMetadata(), nil).AnyTimes()
 	zk.mockHealthyMetadata("some-topic")
 
-	var clusterStatus ClusterStatus
-	json.Unmarshal(check.checkClusterHealth(), &clusterStatus)
+	clusterStatus := check.checkClusterHealth()
 
 	if clusterStatus.Status != yellow {
 		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus, yellow)
@@ -56,8 +53,7 @@ func Test_checkClusterHealth_WhenSomePartitionOffline_ReportsRed(t *testing.T) {
 	connection.EXPECT().Metadata().Return(offlineMetadata(), nil).AnyTimes()
 	zk.mockHealthyMetadata("some-topic")
 
-	var clusterStatus ClusterStatus
-	json.Unmarshal(check.checkClusterHealth(), &clusterStatus)
+	clusterStatus := check.checkClusterHealth()
 
 	if clusterStatus.Status != red {
 		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus, red)

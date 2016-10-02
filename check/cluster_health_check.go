@@ -1,8 +1,6 @@
 package check
 
 import (
-	"encoding/json"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/optiopay/kafka/proto"
 )
@@ -41,7 +39,7 @@ const (
 )
 
 // periodically checks health of the Kafka cluster
-func (check *HealthCheck) checkClusterHealth() []byte {
+func (check *HealthCheck) checkClusterHealth() ClusterStatus {
 	metadata, err := check.broker.Metadata()
 
 	var clusterStatus ClusterStatus = ClusterStatus{Status: red}
@@ -57,14 +55,7 @@ func (check *HealthCheck) checkClusterHealth() []byte {
 		}
 	}
 
-	data, err := json.Marshal(clusterStatus)
-
-	if err != nil {
-		log.Println("Error while marshaling cluster status", err)
-		return []byte("{\"status\": \"" + red + "\"}")
-	} else {
-		return data
-	}
+	return clusterStatus
 }
 
 func (check *HealthCheck) checkBrokerMetadata(metadata *proto.MetadataResp, zkBrokers []int32, cluster *ClusterStatus) (status string) {

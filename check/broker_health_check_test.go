@@ -20,8 +20,8 @@ func Test_checkBrokerHealth_WhenProducedMessageIsConsumed_ReturnsHealthy(t *test
 
 	status := check.checkBrokerHealth()
 
-	if status != healthy {
-		t.Errorf("checkBrokerHealth returned %s, expected %s", status, healthy)
+	if status.Status != healthy {
+		t.Errorf("checkBrokerHealth returned %s, expected %s", status.Status, healthy)
 	}
 }
 
@@ -35,8 +35,8 @@ func Test_checkBrokerHealth_WhenProducedMessageIsNotConsumed_ReturnsUnhealthy(t 
 
 	status := check.checkBrokerHealth()
 
-	if status != unhealthy {
-		t.Errorf("checkBrokerHealth returned %s, expected %s", status, unhealthy)
+	if status.Status != unhealthy {
+		t.Errorf("checkBrokerHealth returned %s, expected %s", status.Status, unhealthy)
 	}
 }
 
@@ -52,8 +52,8 @@ func Test_checkBrokerHealth_WhenProducedMessageIsConsumedAndInSync_ReturnsInSync
 
 	status := check.checkBrokerHealth()
 
-	if status != insync {
-		t.Errorf("checkBrokerHealth returned %s, expected %s", status, insync)
+	if status.Status != insync {
+		t.Errorf("checkBrokerHealth returned %s, expected %s", status.Status, insync)
 	}
 }
 

@@ -1,10 +1,10 @@
 package check
 
 import (
-	"log"
 	"math/rand"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/optiopay/kafka"
 	"github.com/optiopay/kafka/proto"
 )
@@ -15,8 +15,18 @@ const (
 	unhealthy = "nook"
 )
 
+type BrokerStatus struct {
+	Status          string              `json:"status"`
+	UnderReplicated []ReplicationStatus `json:"under-replicated"`
+}
+
+type ReplicationStatus struct {
+	Topic     string `json:"topic"`
+	Partition int32  `json:"partition"`
+}
+
 // sends one message to the broker partition, wait for it to appear on the consumer.
-func (check *HealthCheck) checkBrokerHealth() string {
+func (check *HealthCheck) checkBrokerHealth() BrokerStatus {
 	status := unhealthy
 	payload := randomBytes(check.config.MessageLength, check.randSrc)
 	message := &proto.Message{Value: []byte(payload)}
@@ -27,11 +37,12 @@ func (check *HealthCheck) checkBrokerHealth() string {
 		status = check.waitForMessage(message)
 	}
 
-	if status == healthy && check.brokerInSync() {
-		status = insync
+	brokerStatus := BrokerStatus{Status: status}
+	if status == healthy && check.brokerInSync(&brokerStatus) {
+		brokerStatus.Status = insync
 	}
 
-	return status
+	return brokerStatus
 }
 
 // waits for a message with the payload of the given message to appear on the consumer side.
@@ -57,7 +68,7 @@ func (check *HealthCheck) waitForMessage(message *proto.Message) string {
 }
 
 // checks whether the broker is in all ISRs of all partitions it replicates.
-func (check *HealthCheck) brokerInSync() bool {
+func (check *HealthCheck) brokerInSync(brokerStatus *BrokerStatus) bool {
 	metadata, err := check.broker.Metadata()
 	if err != nil {
 		log.Println("metadata could not be retrieved, broker assumed out of sync:", err)
@@ -66,15 +77,18 @@ func (check *HealthCheck) brokerInSync() bool {
 
 	brokerID := int32(check.config.brokerID)
 
+	inSync := true
 	for _, topic := range metadata.Topics {
 		for _, partition := range topic.Partitions {
 			if contains(partition.Replicas, brokerID) && !contains(partition.Isrs, brokerID) {
-				return false
+				inSync = false
+				status := ReplicationStatus{Topic: topic.Name, Partition: partition.ID}
+				brokerStatus.UnderReplicated = append(brokerStatus.UnderReplicated, status)
 			}
 		}
 	}
 
-	return true
+	return inSync
 }
 
 // creates a random message payload.
