@@ -155,3 +155,27 @@ func (_m *MockZkConnection) Create(path string, data []byte, flags int32, acl []
 func (_mr *_MockZkConnectionRecorder) Create(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Create", arg0, arg1, arg2, arg3)
 }
+
+func (_m *MockZkConnection) Children(path string) ([]string, *zk.Stat, error) {
+	ret := _m.ctrl.Call(_m, "Children", path)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(*zk.Stat)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+func (_mr *_MockZkConnectionRecorder) Children(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Children", arg0)
+}
+
+func (_m *MockZkConnection) Get(path string) ([]byte, *zk.Stat, error) {
+	ret := _m.ctrl.Call(_m, "Get", path)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(*zk.Stat)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+func (_mr *_MockZkConnectionRecorder) Get(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Get", arg0)
+}

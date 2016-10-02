@@ -4,6 +4,7 @@ import (
 	"sync"
 	"testing"
 
+	"encoding/json"
 	"github.com/golang/mock/gomock"
 )
 
@@ -14,13 +15,14 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 	stop := make(chan struct{})
 	awaitCheck := sync.WaitGroup{}
 
-	check := newTestCheck()
-	connection := workingBroker(check, ctrl, check.config.topicName, stop)
+	check, zk := newZkTestCheck(ctrl)
+	connection := workingBroker(check, ctrl, stop)
 	connection.EXPECT().Dial(gomock.Any(), gomock.Any()).Return(nil)
 	connection.EXPECT().Consumer(gomock.Any()).Return(check.consumer, nil)
 	connection.EXPECT().Producer(gomock.Any()).Return(check.producer)
 	connection.EXPECT().Metadata().Return(healthyMetadata(check.config.topicName), nil).AnyTimes()
 	connection.EXPECT().Close()
+	zk.mockHealthyMetadata(check.config.topicName)
 
 	brokerUpdates := make(chan string)
 	defer close(brokerUpdates)
@@ -35,7 +37,8 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 	}()
 
 	brokerStatus := <-brokerUpdates
-	clusterStatus := <-clusterUpdates
+	var clusterStatus ClusterStatus
+	json.Unmarshal([]byte(<-clusterUpdates), &clusterStatus)
 	close(stop)
 	awaitCheck.Wait()
 
@@ -43,7 +46,7 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 		t.Errorf("CheckHealth reported broker status as %s, expected %s", brokerStatus, insync)
 	}
 
-	if clusterStatus != green {
-		t.Errorf("CheckHealth reported cluster status as %s, expected %s", clusterStatus, green)
+	if clusterStatus.Status != green {
+		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus, green)
 	}
 }

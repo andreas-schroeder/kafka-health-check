@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "2avCvSn0XonfApKKuTMyiQmk7s0=",
+			"path": "github.com/Sirupsen/logrus",
+			"revision": "3ec0642a7fb6488f65b06f9040adc67e3990296a",
+			"revisionTime": "2016-08-29T20:23:21Z"
+		},
+		{
 			"checksumSHA1": "JSHl8b3nI8EWvzm+uyrIqj2Hiu4=",
 			"path": "github.com/golang/mock/gomock",
 			"revision": "bd3c8e81be01eef76d4b503f5e687d2d1354d2d9"
@@ -41,6 +47,12 @@
 			"checksumSHA1": "Mjz0ZUqS94MA3AjF7ros5I/RSxc=",
 			"path": "github.com/samuel/go-zookeeper/zk",
 			"revision": "5250732bd2ed71d1e374212ebfc32760eca10c0a"
+		},
+		{
+			"checksumSHA1": "vu7njn8O4vhFtmgGWntwjA2NAbk=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9",
+			"revisionTime": "2016-09-14T20:33:16Z"
 		}
 	],
 	"rootPath": "github.com/andreas-schroeder/kafka-health-check"

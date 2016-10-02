@@ -12,7 +12,7 @@ func Test_tryConnectOnce_WhenConnectSucceeds_GivesConsumerAndProducer(t *testing
 	defer ctrl.Finish()
 
 	check := newTestCheck()
-	connection, _, consumer, producer := mockBroker(check, ctrl, check.config.topicName)
+	connection, _, consumer, producer := mockBroker(check, ctrl)
 	connection.EXPECT().Dial(gomock.Any(), gomock.Any()).Return(nil)
 	connection.EXPECT().Metadata().Return(healthyMetadata(check.config.topicName), nil)
 	connection.EXPECT().Consumer(gomock.Any()).Return(consumer, nil)
@@ -38,7 +38,7 @@ func Test_tryConnectOnce_WhenBrokerConnectFails_ReturnsError(t *testing.T) {
 	defer ctrl.Finish()
 
 	check := newTestCheck()
-	connection, _, _, _ := mockBroker(check, ctrl, check.config.topicName)
+	connection, _, _, _ := mockBroker(check, ctrl)
 	connection.EXPECT().Dial(gomock.Any(), gomock.Any()).Return(errors.New("test error"))
 	createIfMissing := false
 
@@ -54,7 +54,7 @@ func Test_tryConnectOnce_WhenCreateConsumerFails_ReturnsError(t *testing.T) {
 	defer ctrl.Finish()
 
 	check := newTestCheck()
-	connection, _, _, _ := mockBroker(check, ctrl, check.config.topicName)
+	connection, _, _, _ := mockBroker(check, ctrl)
 	connection.EXPECT().Dial(gomock.Any(), gomock.Any()).Return(nil)
 	connection.EXPECT().Metadata().Return(healthyMetadata(check.config.topicName), nil)
 	connection.EXPECT().Consumer(gomock.Any()).Return(nil, errors.New("test error"))
@@ -73,7 +73,7 @@ func Test_getBrokerPartitionID_WhenTopicDoesExist_ReturnsTopicId(t *testing.T) {
 	defer ctrl.Finish()
 
 	check := newTestCheck()
-	connection, _, _, _ := mockBroker(check, ctrl, check.config.topicName)
+	connection, _, _, _ := mockBroker(check, ctrl)
 	connection.EXPECT().Metadata().Return(healthyMetadata(check.config.topicName), nil)
 
 	createIfMissing := false
@@ -94,7 +94,7 @@ func Test_getBrokerPartitionID_WhenBrokerDoesNotExist_ReturnsError(t *testing.T)
 	defer ctrl.Finish()
 
 	check := newTestCheck()
-	connection, _, _, _ := mockBroker(check, ctrl, check.config.topicName)
+	connection, _, _, _ := mockBroker(check, ctrl)
 	connection.EXPECT().Metadata().Return(metadataWithoutBroker(), nil)
 
 	createIfMissing := false
@@ -110,7 +110,7 @@ func Test_getBrokerPartitionID_WhenTopicDoesNotExistAndMayNotCreateIt_ReturnsErr
 	defer ctrl.Finish()
 
 	check, zookeeper := newZkTestCheck(ctrl)
-	connection, _, _, _ := mockBroker(check, ctrl, check.config.topicName)
+	connection, _, _, _ := mockBroker(check, ctrl)
 	connection.EXPECT().Metadata().Return(metadataWithoutTopic(), nil)
 	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil).MaxTimes(0)
 	createIfMissing := false
@@ -126,7 +126,7 @@ func Test_getBrokerPartitionID_WhenTopicDoesNotExistAndMayCreateIt_CreatesTopic(
 	defer ctrl.Finish()
 
 	check, zookeeper := newZkTestCheck(ctrl)
-	connection, _, _, _ := mockBroker(check, ctrl, check.config.topicName)
+	connection, _, _, _ := mockBroker(check, ctrl)
 	connection.EXPECT().Metadata().Return(metadataWithoutTopic(), nil)
 
 	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil)
@@ -146,7 +146,7 @@ func Test_getBrokerPartitionID_WhenTopicDoesNotExistAndCreatingItFails_ReturnsEr
 	defer ctrl.Finish()
 
 	check, zookeeper := newZkTestCheck(ctrl)
-	connection, _, _, _ := mockBroker(check, ctrl, check.config.topicName)
+	connection, _, _, _ := mockBroker(check, ctrl)
 	connection.EXPECT().Metadata().Return(metadataWithoutTopic(), nil)
 
 	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, errors.New("test error"))

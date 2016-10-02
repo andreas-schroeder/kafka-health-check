@@ -15,7 +15,7 @@ func Test_checkBrokerHealth_WhenProducedMessageIsConsumed_ReturnsHealthy(t *test
 	defer close(stop)
 
 	check := newTestCheck()
-	connection := workingBroker(check, ctrl, check.config.topicName, stop)
+	connection := workingBroker(check, ctrl, stop)
 	connection.EXPECT().Metadata().Return(outOfSyncMetadata(), nil).AnyTimes()
 
 	status := check.checkBrokerHealth()
@@ -30,7 +30,7 @@ func Test_checkBrokerHealth_WhenProducedMessageIsNotConsumed_ReturnsUnhealthy(t 
 	defer ctrl.Finish()
 
 	check := newTestCheck()
-	stop := brokenBroker(check, ctrl, check.config.topicName)
+	stop := brokenBroker(check, ctrl)
 	defer close(stop)
 
 	status := check.checkBrokerHealth()
@@ -47,7 +47,7 @@ func Test_checkBrokerHealth_WhenProducedMessageIsConsumedAndInSync_ReturnsInSync
 	defer close(stop)
 
 	check := newTestCheck()
-	connection := workingBroker(check, ctrl, check.config.topicName, stop)
+	connection := workingBroker(check, ctrl, stop)
 	connection.EXPECT().Metadata().Return(inSyncMetadata(), nil).AnyTimes()
 
 	status := check.checkBrokerHealth()
@@ -57,8 +57,8 @@ func Test_checkBrokerHealth_WhenProducedMessageIsConsumedAndInSync_ReturnsInSync
 	}
 }
 
-func workingBroker(check *HealthCheck, ctrl *gomock.Controller, topicName string, stop <-chan struct{}) *MockBrokerConnection {
-	connection, broker, consumer, _ := mockBroker(check, ctrl, topicName)
+func workingBroker(check *HealthCheck, ctrl *gomock.Controller, stop <-chan struct{}) *MockBrokerConnection {
+	connection, broker, consumer, _ := mockBroker(check, ctrl)
 
 	go func() {
 		for {
@@ -80,8 +80,8 @@ func workingBroker(check *HealthCheck, ctrl *gomock.Controller, topicName string
 	return connection
 }
 
-func brokenBroker(check *HealthCheck, ctrl *gomock.Controller, topicName string) chan struct{} {
-	_, broker, consumer, _ := mockBroker(check, ctrl, topicName)
+func brokenBroker(check *HealthCheck, ctrl *gomock.Controller) chan struct{} {
+	_, broker, consumer, _ := mockBroker(check, ctrl)
 
 	stop := make(chan struct{})
 	ticker := time.NewTicker(5 * time.Millisecond)

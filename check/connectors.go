@@ -58,6 +58,8 @@ type ZkConnection interface {
 	Exists(path string) (bool, *zk.Stat, error)
 	Set(path string, data []byte, version int32) (*zk.Stat, error)
 	Create(path string, data []byte, flags int32, acl []zk.ACL) (string, error)
+	Children(path string) ([]string, *zk.Stat, error)
+	Get(path string) ([]byte, *zk.Stat, error)
 }
 
 // Actual implementation based on samuel/go-zookeeper/zk
@@ -85,4 +87,12 @@ func (zkConn *zkConnection) Set(path string, data []byte, version int32) (*zk.St
 
 func (zkConn *zkConnection) Create(path string, data []byte, flags int32, acl []zk.ACL) (string, error) {
 	return zkConn.connection.Create(path, data, flags, acl)
+}
+
+func (zkConn *zkConnection) Children(path string) ([]string, *zk.Stat, error) {
+	return zkConn.connection.Children(path)
+}
+
+func (zkConn *zkConnection) Get(path string) ([]byte, *zk.Stat, error) {
+	return zkConn.connection.Get(path)
 }

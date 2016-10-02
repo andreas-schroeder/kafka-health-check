@@ -3,40 +3,45 @@ package check
 import (
 	"testing"
 
+	"encoding/json"
 	"github.com/golang/mock/gomock"
 )
 
-func Test_checkClusterHealth_WhenAllPartitionsReplicated_ReportsGreen(t *testing.T) {
+func Test_checkClusterHealth_WhenAllMetadataConsistent_ReportsGreen(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	stop := make(chan struct{})
 	defer close(stop)
 
-	check := newTestCheck()
-	connection := workingBroker(check, ctrl, check.config.topicName, stop)
-	connection.EXPECT().Metadata().Return(healthyMetadata(check.config.topicName), nil).AnyTimes()
+	check, zk := newZkTestCheck(ctrl)
+	connection := workingBroker(check, ctrl, stop)
+	connection.EXPECT().Metadata().Return(healthyMetadata("some-topic"), nil).AnyTimes()
+	zk.mockHealthyMetadata("some-topic")
 
-	clusterStatus := check.checkClusterHealth()
+	var clusterStatus ClusterStatus
+	json.Unmarshal(check.checkClusterHealth(), &clusterStatus)
 
-	if clusterStatus != green {
-		t.Errorf("CheckHealth reported cluster status as %s, expected %s", clusterStatus, green)
+	if clusterStatus.Status != green {
+		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus, green)
 	}
 }
 
-func Test_checkClusterHealth_WhenSomePartitionUnderreplicated_ReportsYellow(t *testing.T) {
+func Test_checkClusterHealth_WhenSomePartitionUnderReplicated_ReportsYellow(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	stop := make(chan struct{})
 	defer close(stop)
 
-	check := newTestCheck()
-	connection := workingBroker(check, ctrl, check.config.topicName, stop)
-	connection.EXPECT().Metadata().Return(outOfSyncMetadata(), nil).AnyTimes()
+	check, zk := newZkTestCheck(ctrl)
+	connection := workingBroker(check, ctrl, stop)
+	connection.EXPECT().Metadata().Return(underReplicatedMetadata(), nil).AnyTimes()
+	zk.mockHealthyMetadata("some-topic")
 
-	clusterStatus := check.checkClusterHealth()
+	var clusterStatus ClusterStatus
+	json.Unmarshal(check.checkClusterHealth(), &clusterStatus)
 
-	if clusterStatus != yellow {
-		t.Errorf("CheckHealth reported cluster status as %s, expected %s", clusterStatus, yellow)
+	if clusterStatus.Status != yellow {
+		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus, yellow)
 	}
 }
 
@@ -46,13 +51,15 @@ func Test_checkClusterHealth_WhenSomePartitionOffline_ReportsRed(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	check := newTestCheck()
-	connection := workingBroker(check, ctrl, check.config.topicName, stop)
-	connection.EXPECT().Metadata().Return(offlinecMetadata(), nil).AnyTimes()
+	check, zk := newZkTestCheck(ctrl)
+	connection := workingBroker(check, ctrl, stop)
+	connection.EXPECT().Metadata().Return(offlineMetadata(), nil).AnyTimes()
+	zk.mockHealthyMetadata("some-topic")
 
-	clusterStatus := check.checkClusterHealth()
+	var clusterStatus ClusterStatus
+	json.Unmarshal(check.checkClusterHealth(), &clusterStatus)
 
-	if clusterStatus != red {
-		t.Errorf("CheckHealth reported cluster status as %s, expected %s", clusterStatus, red)
+	if clusterStatus.Status != red {
+		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus, red)
 	}
 }

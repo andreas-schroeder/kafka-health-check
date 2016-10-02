@@ -30,7 +30,7 @@ func newTestCheck() *HealthCheck {
 	}
 }
 
-func mockBroker(check *HealthCheck, ctrl *gomock.Controller, topicName string) (*MockBrokerConnection, *kafkatest.Broker, *kafkatest.Consumer, kafka.Producer) {
+func mockBroker(check *HealthCheck, ctrl *gomock.Controller) (*MockBrokerConnection, *kafkatest.Broker, *kafkatest.Consumer, kafka.Producer) {
 	broker := kafkatest.NewBroker()
 	consumer := &kafkatest.Consumer{
 		Broker:   broker,
@@ -50,36 +50,36 @@ func healthyMetadata(topicName string) *proto.MetadataResp {
 	return &proto.MetadataResp{
 		CorrelationID: int32(1),
 		Brokers: []proto.MetadataRespBroker{
-			proto.MetadataRespBroker{
+			{
 				NodeID: int32(2),
 				Host:   "10.0.0.5",
 				Port:   int32(9092),
 			},
-			proto.MetadataRespBroker{
+			{
 				NodeID: int32(1),
 				Host:   "localhost",
 				Port:   int32(9092),
 			},
 		},
 		Topics: []proto.MetadataRespTopic{
-			proto.MetadataRespTopic{
+			{
 				Name: "some-other-topic",
 				Err:  nil,
 				Partitions: []proto.MetadataRespPartition{
-					proto.MetadataRespPartition{
+					{
 						ID:       1,
 						Err:      nil,
-						Leader:   int32(2),
+						Leader:   int32(1),
 						Replicas: []int32{1},
 						Isrs:     []int32{1},
 					},
 				},
 			},
-			proto.MetadataRespTopic{
+			{
 				Name: topicName,
 				Err:  nil,
 				Partitions: []proto.MetadataRespPartition{
-					proto.MetadataRespPartition{
+					{
 						ID:       2,
 						Err:      nil,
 						Leader:   int32(1),
@@ -96,23 +96,23 @@ func outOfSyncMetadata() *proto.MetadataResp {
 	return &proto.MetadataResp{
 		CorrelationID: int32(1),
 		Brokers: []proto.MetadataRespBroker{
-			proto.MetadataRespBroker{
+			{
 				NodeID: int32(2),
 				Host:   "10.0.0.5",
 				Port:   int32(9092),
 			},
-			proto.MetadataRespBroker{
+			{
 				NodeID: int32(1),
 				Host:   "localhost",
 				Port:   int32(9092),
 			},
 		},
 		Topics: []proto.MetadataRespTopic{
-			proto.MetadataRespTopic{
+			{
 				Name: "some-topic",
 				Err:  nil,
 				Partitions: []proto.MetadataRespPartition{
-					proto.MetadataRespPartition{
+					{
 						ID:       1,
 						Err:      nil,
 						Leader:   int32(2),
@@ -125,27 +125,60 @@ func outOfSyncMetadata() *proto.MetadataResp {
 	}
 }
 
-func inSyncMetadata() *proto.MetadataResp {
+func underReplicatedMetadata() *proto.MetadataResp {
 	return &proto.MetadataResp{
 		CorrelationID: int32(1),
 		Brokers: []proto.MetadataRespBroker{
-			proto.MetadataRespBroker{
+			{
 				NodeID: int32(2),
 				Host:   "10.0.0.5",
 				Port:   int32(9092),
 			},
-			proto.MetadataRespBroker{
+			{
 				NodeID: int32(1),
 				Host:   "localhost",
 				Port:   int32(9092),
 			},
 		},
 		Topics: []proto.MetadataRespTopic{
-			proto.MetadataRespTopic{
+			{
 				Name: "some-topic",
 				Err:  nil,
 				Partitions: []proto.MetadataRespPartition{
-					proto.MetadataRespPartition{
+					{
+						ID:       2,
+						Err:      nil,
+						Leader:   int32(2),
+						Replicas: []int32{2},
+						Isrs:     []int32{2},
+					},
+				},
+			},
+		},
+	}
+}
+
+func inSyncMetadata() *proto.MetadataResp {
+	return &proto.MetadataResp{
+		CorrelationID: int32(1),
+		Brokers: []proto.MetadataRespBroker{
+			{
+				NodeID: int32(2),
+				Host:   "10.0.0.5",
+				Port:   int32(9092),
+			},
+			{
+				NodeID: int32(1),
+				Host:   "localhost",
+				Port:   int32(9092),
+			},
+		},
+		Topics: []proto.MetadataRespTopic{
+			{
+				Name: "some-topic",
+				Err:  nil,
+				Partitions: []proto.MetadataRespPartition{
+					{
 						ID:       1,
 						Err:      nil,
 						Leader:   int32(2),
@@ -158,22 +191,22 @@ func inSyncMetadata() *proto.MetadataResp {
 	}
 }
 
-func offlinecMetadata() *proto.MetadataResp {
+func offlineMetadata() *proto.MetadataResp {
 	return &proto.MetadataResp{
 		CorrelationID: int32(1),
 		Brokers: []proto.MetadataRespBroker{
-			proto.MetadataRespBroker{
+			{
 				NodeID: int32(1),
 				Host:   "localhost",
 				Port:   int32(9092),
 			},
 		},
 		Topics: []proto.MetadataRespTopic{
-			proto.MetadataRespTopic{
+			{
 				Name: "some-topic",
 				Err:  nil,
 				Partitions: []proto.MetadataRespPartition{
-					proto.MetadataRespPartition{
+					{
 						ID:       1,
 						Err:      nil,
 						Leader:   int32(2),
@@ -190,18 +223,18 @@ func metadataWithoutBroker() *proto.MetadataResp {
 	return &proto.MetadataResp{
 		CorrelationID: int32(1),
 		Brokers: []proto.MetadataRespBroker{
-			proto.MetadataRespBroker{
+			{
 				NodeID: int32(2),
 				Host:   "10.0.0.5",
 				Port:   int32(9092),
 			},
 		},
 		Topics: []proto.MetadataRespTopic{
-			proto.MetadataRespTopic{
+			{
 				Name: "some-other-topic",
 				Err:  nil,
 				Partitions: []proto.MetadataRespPartition{
-					proto.MetadataRespPartition{
+					{
 						ID:       1,
 						Err:      nil,
 						Leader:   int32(2),
@@ -218,7 +251,7 @@ func metadataWithoutTopic() *proto.MetadataResp {
 	return &proto.MetadataResp{
 		CorrelationID: int32(1),
 		Brokers: []proto.MetadataRespBroker{
-			proto.MetadataRespBroker{
+			{
 				NodeID: int32(1),
 				Host:   "localhost",
 				Port:   int32(9092),
@@ -244,4 +277,13 @@ func (zookeeper *MockZkConnection) mockSuccessfulPathCreation(path string) {
 func (zookeeper *MockZkConnection) mockFailingPathCreation(path string) {
 	zookeeper.EXPECT().Exists(path).Return(false, nil, nil)
 	zookeeper.EXPECT().Create(path, gomock.Any(), int32(0), gomock.Any()).Return("", errors.New("Test error"))
+}
+
+func (zk *MockZkConnection) mockHealthyMetadata(topic string) {
+	zk.EXPECT().Connect([]string{"localhost:2181"}, 10*time.Second).Return(nil, nil)
+	zk.EXPECT().Children("/brokers/ids").Return([]string{"1", "2"}, nil, nil)
+	zk.EXPECT().Children("/brokers/topics").Return([]string{topic, "some-other-topic"}, nil, nil)
+	zk.EXPECT().Get("/brokers/topics/"+topic).Return([]byte(`{"version":1,"partitions":{"2":[1, 2]}}`), nil, nil)
+	zk.EXPECT().Get("/brokers/topics/some-other-topic").Return([]byte(`{"version":1,"partitions":{"1":[1]}}`), nil, nil)
+	zk.EXPECT().Close()
 }

@@ -64,15 +64,6 @@ func (check *HealthCheck) brokerInSync() bool {
 		return false
 	}
 
-	contains := func(arr []int32, id int32) bool {
-		for _, e := range arr {
-			if e == id {
-				return true
-			}
-		}
-		return false
-	}
-
 	brokerID := int32(check.config.brokerID)
 
 	for _, topic := range metadata.Topics {

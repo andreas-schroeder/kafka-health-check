@@ -75,12 +75,21 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- string, clusterUpdate
 				}
 				log.Println("reconnected")
 			} else {
-				clusterUpdates <- check.checkClusterHealth()
+				clusterUpdates <- string(check.checkClusterHealth())
 			}
 		case <-stop:
 			return
 		}
 	}
+}
+
+func contains(arr []int32, id int32) bool {
+	for _, e := range arr {
+		if e == id {
+			return true
+		}
+	}
+	return false
 }
 
 func (check *HealthCheck) brokerConfig() kafka.BrokerConf {
