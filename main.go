@@ -21,16 +21,16 @@ func main() {
 	awaitCheck.Done()
 }
 
-func addShutdownHook() (chan struct{}, sync.WaitGroup) {
+func addShutdownHook() (chan struct{}, *sync.WaitGroup) {
 	stop := make(chan struct{})
-	awaitCheck := sync.WaitGroup{}
+	awaitCheck := &sync.WaitGroup{}
 	awaitCheck.Add(1)
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt)
 	signal.Notify(shutdown, syscall.SIGTERM)
 	go func() {
-		for _ = range shutdown {
+		for range shutdown {
 			close(stop)
 			awaitCheck.Wait()
 		}
