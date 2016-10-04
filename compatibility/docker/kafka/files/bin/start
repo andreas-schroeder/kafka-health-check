@@ -11,7 +11,8 @@ start_zookeeper() {
 
 start_kafka() {
   docker_container_ip=$(ip -4 addr show scope global dev eth0 | awk '/inet/ { print $2 }' | cut -d / -f 1)
-  sed -r -i "s/(^|^#)(advertised\.host\.name)=(.*)/\2=${docker_container_ip}/g" config/server.properties
+  host_name_setting="${advertised_host:-$docker_container_ip}"
+  sed -r -i "s/(^|^#)(advertised\.host\.name)=(.*)/\2=${host_name_setting}/g" config/server.properties
   bin/kafka-server-start.sh config/server.properties
 }
 

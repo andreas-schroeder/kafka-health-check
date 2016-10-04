@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/smallfish/simpleyaml"
+	"encoding/json"
 )
 
 type versionSpec struct {
@@ -32,6 +33,8 @@ func main() {
 	flag.StringVar(&healthCheckCommand, "health-check", "", "kafka health check executable to test")
 	flag.StringVar(&baseDir, "base-dir", "", "directory containing the Java and Kafka docker build contexts")
 	flag.Parse()
+
+	determineIp()
 
 	specs := parseVersionSpecs(baseDir)
 
@@ -53,6 +56,36 @@ func main() {
 		fmt.Println("FAIL")
 		os.Exit(1)
 	}
+}
+
+var advertisedHost string
+
+func determineIp() {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		log.Fatal("Error while fetching network interfaces, aborting.", err)
+	}
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip.IsGlobalUnicast() && ip.To4() != nil {
+				advertisedHost = ip.To4().String()
+				log.Println("using", advertisedHost, "as IP for Kafka containers.")
+				return
+			}
+		}
+	}
+	log.Fatal("Unable to find a local private IP, aborting.")
 }
 
 func runTest(tag string, spec versionSpec, healthCheckCommand string) bool {
@@ -101,8 +134,11 @@ func startAll(tag, healthCheckCommand string) (zkID, kafkaID string, hcCmd *exec
 	}
 
 	log.Print("Starting Kafka...")
-	err = exec.Command("docker", "run", "-d", "--name", kafkaID, "-p", "9092:9092",
-		"--link", zkID+":zookeeper", tag).Run()
+	kCmd := exec.Command("docker", "run", "-d",
+		"--env", "advertised_host=" + advertisedHost,
+		"--name", kafkaID, "-p", "9092:9092",
+		"--link", zkID+":zookeeper", tag)
+	kCmd.Run()
 	if err != nil {
 		log.Fatal("Failed to start Kafka: ", err)
 	}
@@ -139,7 +175,7 @@ func waitForZooKeeper() bool {
 			log.Println("Failed to connect to ZooKeeper:", err)
 			continue
 		}
-		fmt.Fprintf(conn, "ruok")
+		fmt.Fprint(conn, "ruok")
 		status, err := bufio.NewReader(conn).ReadString('\n')
 		if err != nil && err != io.EOF {
 			log.Println("Failed to read ZooKeeper status:", err)
@@ -150,6 +186,10 @@ func waitForZooKeeper() bool {
 		}
 	}
 	return false
+}
+
+type Status struct {
+	Status string `json:"status"`
 }
 
 func waitForResponse(url, expected string) bool {
@@ -167,12 +207,17 @@ func waitForResponse(url, expected string) bool {
 			log.Println("reading response returned error", err, "retrying", retries, "more times...")
 			continue
 		}
-		status := strings.TrimSpace(string(statusBytes))
+		var status Status
+		err = json.Unmarshal(statusBytes, &status)
+		if err != nil {
+			log.Println("parsing response", string(statusBytes), "returned error:", err, "retrying", retries, "more times...")
+			continue
+		}
 
-		if status == expected {
+		if status.Status == expected {
 			return true
 		}
-		log.Println("reported status is", status, "retrying", retries, "more times...")
+		log.Println("reported status is", status.Status, "retrying", retries, "more times...")
 	}
 	return false
 }

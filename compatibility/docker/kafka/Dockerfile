@@ -38,6 +38,8 @@ VOLUME /kafka/config
 # Expose Kafka data volume.
 VOLUME /var/lib/kafka
 
+ENV advertised_host=""
+
 # Define start wrapper as entrypoint.
 ENTRYPOINT [ "kafka/bin/start" ]
 

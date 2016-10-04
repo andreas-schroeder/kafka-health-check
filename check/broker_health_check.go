@@ -16,8 +16,8 @@ const (
 )
 
 type BrokerStatus struct {
-	Status          string              `json:"status"`
-	UnderReplicated []ReplicationStatus `json:"under-replicated"`
+	Status    string              `json:"status"`
+	OutOfSync []ReplicationStatus `json:"out-of-sync,omitempty"`
 }
 
 type ReplicationStatus struct {
@@ -83,7 +83,7 @@ func (check *HealthCheck) brokerInSync(brokerStatus *BrokerStatus) bool {
 			if contains(partition.Replicas, brokerID) && !contains(partition.Isrs, brokerID) {
 				inSync = false
 				status := ReplicationStatus{Topic: topic.Name, Partition: partition.ID}
-				brokerStatus.UnderReplicated = append(brokerStatus.UnderReplicated, status)
+				brokerStatus.OutOfSync = append(brokerStatus.OutOfSync, status)
 			}
 		}
 	}

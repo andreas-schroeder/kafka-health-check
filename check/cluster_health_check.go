@@ -8,7 +8,7 @@ import (
 type ClusterStatus struct {
 	Status    string           `json:"status"`
 	Topics    []TopicStatus    `json:"topics,omitempty"`
-	Brokers   []BrokerMetadata `json:"metadata,omitempty"`
+	Metadata  []BrokerMetadata `json:"metadata,omitempty"`
 	ZooKeeper string           `json:"zookeeper-connection,omitempty"`
 }
 
@@ -20,10 +20,10 @@ type TopicStatus struct {
 }
 
 type PartitionStatus struct {
-	ID               int32   `json:"id"`
-	Status           string  `json:"status"`
-	ZooKeeper        string  `json:"zookeeper,omitempty"`
-	OutOfSyncBrokers []int32 `json:"out-of-sync-brokers,omitempty"`
+	ID                int32   `json:"id"`
+	Status            string  `json:"status"`
+	ZooKeeper         string  `json:"zookeeper,omitempty"`
+	OutOfSyncReplicas []int32 `json:"OSR,omitempty"`
 }
 
 type BrokerMetadata struct {
@@ -68,14 +68,14 @@ func (check *HealthCheck) checkBrokerMetadata(metadata *proto.MetadataResp, zkBr
 
 	for _, broker := range brokersFromMeta {
 		if !contains(zkBrokers, broker) {
-			cluster.Brokers = append(cluster.Brokers, BrokerMetadata{broker, red, "missing in ZooKeeper"})
+			cluster.Metadata = append(cluster.Metadata, BrokerMetadata{broker, red, "Missing in ZooKeeper"})
 			status = red
 		}
 	}
 
 	for _, broker := range zkBrokers {
 		if !contains(brokersFromMeta, broker) {
-			cluster.Brokers = append(cluster.Brokers, BrokerMetadata{broker, red, "missing in Metadata"})
+			cluster.Metadata = append(cluster.Metadata, BrokerMetadata{broker, red, "Missing in metadata"})
 			status = red
 		}
 	}
@@ -110,11 +110,10 @@ func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []Z
 			pStatus := checkPartition(partition, zkPartitionMap, &topicStatus)
 			topicStatus.Status = worstStatus(topicStatus.Status, pStatus)
 		}
-		cluster.Topics = append(cluster.Topics, topicStatus)
-		status = worstStatus(topicStatus.Status, status)
 
 		if topicStatus.Status != green {
-			log.Infof("Reporting topic %s as %s", topicStatus.Topic, topicStatus.Status)
+			cluster.Topics = append(cluster.Topics, topicStatus)
+			status = worstStatus(topicStatus.Status, status)
 		}
 	}
 
@@ -137,7 +136,7 @@ func checkPartition(partition proto.MetadataRespPartition, zkPartitionMap map[in
 	if len(partition.Isrs) < len(replicas) {
 		for _, replica := range replicas {
 			if !contains(partition.Isrs, replica) {
-				status.OutOfSyncBrokers = append(status.OutOfSyncBrokers, replica)
+				status.OutOfSyncReplicas = append(status.OutOfSyncReplicas, replica)
 			}
 		}
 		status.Status = yellow // partition is under-replicated.
@@ -146,7 +145,6 @@ func checkPartition(partition proto.MetadataRespPartition, zkPartitionMap map[in
 		status.Status = red // partition is offline.
 	}
 	if status.Status != green {
-		log.Infof("Reporting partition %d of topic %s as %s", status.ID, topicStatus.Topic, status.Status)
 		topicStatus.Partitions = append(topicStatus.Partitions, status)
 	}
 

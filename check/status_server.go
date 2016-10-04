@@ -18,7 +18,7 @@ func (check *HealthCheck) ServeHealth(brokerUpdates <-chan Update, clusterUpdate
 
 		// goroutine that encapsulates the current status
 		go func() {
-			status := Update{errorStatus, nil}
+			status := Update{errorStatus, []byte(fmt.Sprintf(`{"status":"%s"}`, errorStatus))}
 			for {
 				select {
 				case update := <-updates:

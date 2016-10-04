@@ -67,8 +67,16 @@ type zkConnection struct {
 	connection *zk.Conn
 }
 
+type zkNullLogger struct {
+}
+
+func (zkNullLogger) Printf(string, ...interface{}) {}
+
 func (zkConn *zkConnection) Connect(servers []string, sessionTimeout time.Duration) (<-chan zk.Event, error) {
-	connection, events, err := zk.Connect(servers, sessionTimeout)
+	loggerOption := func(c *zk.Conn) {
+		c.SetLogger(zkNullLogger{})
+	}
+	connection, events, err := zk.Connect(servers, sessionTimeout, loggerOption)
 	zkConn.connection = connection
 	return events, err
 }
