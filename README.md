@@ -119,14 +119,16 @@ Run `make` to build after running `make deps` to restore the dependencies using 
 
 ## Notable Details on Health Check Behavior
 
-* When first started, the checker tries to find the Kafka broker to check in the cluster metadata. Then, it tries to
+* When first started, the check tries to find the Kafka broker to check in the cluster metadata. Then, it tries to
+* When first started, the check tries to find the Kafka broker to check in the cluster metadata. Then, it tries to
   find the health check topic, and creates it if missing by communicating directly with ZooKeeper(configuration:
   10 seconds message lifetime, one single partition assigned to the broker to check).
   This behavior can be disabled by using `-no-topic-creation`.
-* The check also creates on replication check topic. This topic is expanded to all brokers that are checked.
-* When shutting down, the checker deletes to health check topic partition by communicating directly with ZooKeeper.
-  It also shrinks the partition assignment of the replication check topic. This behavior can be disabled by 
-  using `-no-topic-creation`.
+* The check also creates one replication check topic for the whole cluster. This topic is expanded to all brokers 
+  that are checked.
+* When shutting down, the check deletes to health check topic partition by communicating directly with ZooKeeper.
+  It also shrinks the partition assignment of the replication check topic, and deletes it when stopping the last
+  health check process. This behavior can be disabled by using `-no-topic-creation`.
 * The check will try to create the health check and replication check topics only on its first connection after startup. 
   If the topic disappears later while the check is running, it will not try to re-create its topics.
 * If the broker health check fails, the cluster health will be set to `red`.
