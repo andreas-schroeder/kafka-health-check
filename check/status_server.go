@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // ServeHealth answers http queries for broker and cluster health.

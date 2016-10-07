@@ -1,13 +1,14 @@
 # Kafka Health Check
 
-Health checker for Kafka brokers and clusters that operates by
+Health checker for Kafka brokers and clusters that operates by checking whether:
 
-* inserting a message in a dedicated health check topic and waiting for it to
-become available on the consumer side,
-* checking whether the broker is in the in-sync replica set for all partitions it replicates,
-* checking whether under-replicated partitions or out-of-sync replicas exist, 
-* checking whether offline partitions exist, and
-* checking whether the metadata of the cluster and the ZooKeeper metadata are consistent with each other.
+* a message inserted in a dedicated health check topic becomes available for consumers,
+* the broker can stay in the ISR of a replication check topic,
+* the broker is in the in-sync replica set for all partitions it replicates,
+* under-replicated partitions exist,
+* out-of-sync replicas exist,
+* offline partitions exist, and
+* the metadata of the cluster and the ZooKeeper metadata are consistent with each other.
 
 ## Status
 [![Build Status](https://travis-ci.org/andreas-schroeder/kafka-health-check.svg?branch=master)](https://travis-ci.org/andreas-schroeder/kafka-health-check)
@@ -23,7 +24,11 @@ kafka-health-check usage:
   -check-interval duration
     	how frequently to perform health checks (default 10s)
   -no-topic-creation
-    	disable automatic topic creation and deletion.
+    	disable automatic topic creation and deletion
+  -replication-failures-count uint
+    	number of replication failures before broker is reported unhealthy (default 5)
+  -replication-topic string
+    	name of the topic to use for replication checks - use one per cluster, defaults to broker-replication-check
   -server-port uint
     	port to open for http health status queries (default 8000)
   -topic string
@@ -46,14 +51,15 @@ Return codes and status values are:
 * `200` with `imok` for a healthy broker that replays messages of its health
                     check topic, but is not fully in sync.
 * `500` with `nook` for an unhealthy broker that fails to replay messages in its health
-  check topic within [100 milliseconds](./main.go#L42).
+  check topic within [200 milliseconds](./main.go#L43) or if it fails to stay in the ISR
+  of the replication check topic for more checks than `replication-failures-count` (default 5).
 
 
 The returned json contains details about replicas the broker is lagging behind:
 
 ```
 $ curl -s localhost:8000/
-{"status":"imok","out-of-sync":[{"topic":"mytopic","partition":0}]}
+{"status":"imok","out-of-sync":[{"topic":"mytopic","partition":0}],"replication-failures":1}
 ```
 
 ## Cluster Health
@@ -117,10 +123,12 @@ Run `make` to build after running `make deps` to restore the dependencies using 
   find the health check topic, and creates it if missing by communicating directly with ZooKeeper(configuration:
   10 seconds message lifetime, one single partition assigned to the broker to check).
   This behavior can be disabled by using `-no-topic-creation`.
+* The check also creates on replication check topic. This topic is expanded to all brokers that are checked.
 * When shutting down, the checker deletes to health check topic partition by communicating directly with ZooKeeper.
-  This behavior can be disabled by using `-no-topic-creation`.
-* The check will try to create the health check topic only on its first connection after startup. If the topic
-  disappears later while the check is running, it will not try to re-create its health check topic.
+  It also shrinks the partition assignment of the replication check topic. This behavior can be disabled by 
+  using `-no-topic-creation`.
+* The check will try to create the health check and replication check topics only on its first connection after startup. 
+  If the topic disappears later while the check is running, it will not try to re-create its topics.
 * If the broker health check fails, the cluster health will be set to `red`.
-* For each check, the Kafka cluster metadata is fetched from ZooKeeper, i.e. the full data on brokers and topic 
+* For each check pass, the Kafka cluster metadata is fetched from ZooKeeper, i.e. the full data on brokers and topic 
   partitions with replicas.

@@ -2,8 +2,8 @@ package check
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 	"reflect"
 	"strconv"
 	"time"
@@ -19,24 +19,24 @@ type ZkPartition struct {
 	Replicas []int32 `json:"replica"`
 }
 
-func (check *HealthCheck) getZooKeeperMetadata(cluster *ClusterStatus) (topics []ZkTopic, brokers []int32, err error) {
+func (check *HealthCheck) getZooKeeperMetadata() (topics []ZkTopic, brokers []int32, err error) {
 	connectString, chroot := zookeeperEnsembleAndChroot(check.config.zookeeperConnect)
 	_, err = check.zookeeper.Connect(connectString, 10*time.Second)
 	if err != nil {
-		cluster.ZooKeeper = "Establishing connection failed: " + err.Error()
+		err = errors.Wrap(err, "Connecting to ZooKeeper failed")
 		return
 	}
 	defer check.zookeeper.Close()
 
 	brokers, err = zkBrokers(check.zookeeper, chroot)
 	if err != nil {
-		cluster.ZooKeeper = "Fetching brokers failed: " + err.Error()
+		err = errors.Wrap(err, "Fetching brokers from ZooKeeper failed")
 		return
 	}
 
 	topics, err = zkTopics(check.zookeeper, chroot)
 	if err != nil {
-		cluster.ZooKeeper = "Fetching topics failed: " + err.Error()
+		err = errors.Wrap(err, "Fetching topics from ZooKeeper failed")
 		return
 	}
 
@@ -67,18 +67,23 @@ func zkTopics(zk ZkConnection, chroot string) (topics []ZkTopic, err error) {
 
 	for _, topicName := range topicNames {
 		topic := ZkTopic{Name: topicName}
-		partitionsPath := topicsPath + "/" + topicName
-		dataBytes, _, err := zk.Get(partitionsPath)
-		if err != nil {
-			return nil, err
-		}
-		partitions, err := parseZkPartitions(dataBytes, partitionsPath)
+		partitions, err := zkPartitions(zk, topicName, chroot)
 		if err != nil {
 			return nil, err
 		}
 		topic.Partitions = partitions
 		topics = append(topics, topic)
 	}
+	return
+}
+
+func zkPartitions(zk ZkConnection, name, chroot string) (partitions []ZkPartition, err error) {
+	partitionsPath := chroot + "/brokers/topics/" + name
+	dataBytes, _, err := zk.Get(partitionsPath)
+	if err != nil {
+		return nil, err
+	}
+	partitions, err = parseZkPartitions(dataBytes, partitionsPath)
 	return
 }
 

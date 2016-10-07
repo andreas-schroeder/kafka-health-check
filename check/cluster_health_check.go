@@ -1,7 +1,6 @@
 package check
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"github.com/optiopay/kafka/proto"
 )
 
@@ -39,21 +38,11 @@ const (
 )
 
 // periodically checks health of the Kafka cluster
-func (check *HealthCheck) checkClusterHealth() ClusterStatus {
-	metadata, err := check.broker.Metadata()
-
-	var clusterStatus ClusterStatus = ClusterStatus{Status: red}
-	if err != nil {
-		log.Println("Error while retrieving metadata:", err)
-	} else {
-		clusterStatus = ClusterStatus{Status: green}
-		zkTopics, zkBrokers, err := check.getZooKeeperMetadata(&clusterStatus)
-		if err == nil {
-			mStatus := check.checkBrokerMetadata(metadata, zkBrokers, &clusterStatus)
-			tStatus := check.checkTopics(metadata, zkTopics, &clusterStatus)
-			clusterStatus.Status = worstStatus(tStatus, mStatus)
-		}
-	}
+func (check *HealthCheck) checkClusterHealth(metadata *proto.MetadataResp, zkTopics []ZkTopic, zkBrokers []int32) ClusterStatus {
+	clusterStatus := ClusterStatus{Status: green}
+	mStatus := check.checkBrokerMetadata(metadata, zkBrokers, &clusterStatus)
+	tStatus := check.checkTopics(metadata, zkTopics, &clusterStatus)
+	clusterStatus.Status = worstStatus(tStatus, mStatus)
 
 	return clusterStatus
 }
@@ -107,7 +96,7 @@ func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []Z
 		}
 
 		for _, partition := range topic.Partitions {
-			pStatus := checkPartition(partition, zkPartitionMap, &topicStatus)
+			pStatus := checkPartition(&partition, zkPartitionMap, &topicStatus)
 			topicStatus.Status = worstStatus(topicStatus.Status, pStatus)
 		}
 
@@ -120,7 +109,7 @@ func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []Z
 	return
 }
 
-func checkPartition(partition proto.MetadataRespPartition, zkPartitionMap map[int32]ZkPartition, topicStatus *TopicStatus) string {
+func checkPartition(partition *proto.MetadataRespPartition, zkPartitionMap map[int32]ZkPartition, topicStatus *TopicStatus) string {
 	status := PartitionStatus{ID: partition.ID, Status: green}
 
 	replicas := partition.Replicas

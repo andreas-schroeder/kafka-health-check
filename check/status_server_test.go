@@ -44,9 +44,10 @@ func Test_ServeHealth_DefaultClusterStatusIsRed(t *testing.T) {
 func Test_ServeHealth_UpdatesBrokerStatus(t *testing.T) {
 	awaitServer, stop, brokerUpdates, _ := newServerSetup()
 
-	brokerUpdates <- healthy
+	status := simpleStatus(healthy)
+	brokerUpdates <- Update{healthy, status}
 
-	if !waitForExpectedResponse("http://localhost:8000/", healthy) {
+	if !waitForExpectedResponse("http://localhost:8000/", string(status)) {
 		t.Errorf("Broker health was not reported as %s within timeout", healthy)
 	}
 	close(stop)
@@ -56,20 +57,21 @@ func Test_ServeHealth_UpdatesBrokerStatus(t *testing.T) {
 func Test_ServeHealth_UpdatesClusterBrokerStatus(t *testing.T) {
 	awaitServer, stop, _, clusterUpdates := newServerSetup()
 
-	clusterUpdates <- green
+	status := simpleStatus(green)
+	clusterUpdates <- Update{green, status}
 
-	if !waitForExpectedResponse("http://localhost:8000/cluster", green) {
+	if !waitForExpectedResponse("http://localhost:8000/cluster", string(status)) {
 		t.Errorf("Broker health was not reported as %s within timeout", green)
 	}
 	close(stop)
 	awaitServer.Wait()
 }
 
-func newServerSetup() (awaitServer *sync.WaitGroup, stop chan struct{}, brokerUpdates, clusterUpdates chan string) {
+func newServerSetup() (awaitServer *sync.WaitGroup, stop chan struct{}, brokerUpdates, clusterUpdates chan Update) {
 	check := newTestCheck()
 	awaitServer = &sync.WaitGroup{}
 	stop = make(chan struct{})
-	brokerUpdates, clusterUpdates = make(chan string, 2), make(chan string, 2)
+	brokerUpdates, clusterUpdates = make(chan Update, 2), make(chan Update, 2)
 	awaitServer.Add(1)
 	go func() {
 		check.ServeHealth(brokerUpdates, clusterUpdates, stop)

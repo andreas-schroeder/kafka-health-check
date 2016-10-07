@@ -44,6 +44,12 @@
 			"revision": "5ea5ed9f82995911f606b346b370ffd233363950"
 		},
 		{
+			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",
+			"path": "github.com/pkg/errors",
+			"revision": "839d9e913e063e28dfd0e6c7b7512793e0a48be9",
+			"revisionTime": "2016-10-02T05:25:12Z"
+		},
+		{
 			"checksumSHA1": "Mjz0ZUqS94MA3AjF7ros5I/RSxc=",
 			"path": "github.com/samuel/go-zookeeper/zk",
 			"revision": "5250732bd2ed71d1e374212ebfc32760eca10c0a"

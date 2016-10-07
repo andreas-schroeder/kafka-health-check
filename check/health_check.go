@@ -12,28 +12,31 @@ import (
 
 // HealthCheck holds all data required for health checking.
 type HealthCheck struct {
-	zookeeper   ZkConnection
-	broker      BrokerConnection
-	consumer    kafka.Consumer
-	producer    kafka.Producer
-	config      HealthCheckConfig
-	partitionID int32
-	randSrc     rand.Source
+	zookeeper              ZkConnection
+	broker                 BrokerConnection
+	consumer               kafka.Consumer
+	producer               kafka.Producer
+	config                 HealthCheckConfig
+	partitionID            int32
+	replicationPartitionID int32
+	randSrc                rand.Source
 }
 
 // HealthCheckConfig is the configuration for the health check.
 type HealthCheckConfig struct {
-	MessageLength    int
-	CheckInterval    time.Duration
-	CheckTimeout     time.Duration
-	DataWaitInterval time.Duration
-	NoTopicCreation  bool
-	retryInterval    time.Duration
-	topicName        string
-	brokerID         uint
-	brokerPort       uint
-	zookeeperConnect string
-	statusServerPort uint
+	MessageLength               int
+	CheckInterval               time.Duration
+	CheckTimeout                time.Duration
+	DataWaitInterval            time.Duration
+	NoTopicCreation             bool
+	retryInterval               time.Duration
+	topicName                   string
+	replicationTopicName        string
+	replicationFailureThreshold uint
+	brokerID                    uint
+	brokerPort                  uint
+	zookeeperConnect            string
+	statusServerPort            uint
 }
 
 type Update struct {
@@ -58,7 +61,13 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 	if err != nil {
 		return
 	}
-	defer check.close(manageTopic)
+	defer check.closeConnection(manageTopic)
+
+	reportUnhealthy := func(err error) {
+		log.Println("metadata could not be retrieved, assuming broker unhealthy:", err)
+		brokerUpdates <- Update{unhealthy, simpleStatus(unhealthy)}
+		clusterUpdates <- Update{red, simpleStatus(red)}
+	}
 
 	check.randSrc = rand.NewSource(time.Now().UnixNano())
 
@@ -68,27 +77,31 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 	for {
 		select {
 		case <-ticker.C:
-			brokerStatus := check.checkBrokerHealth()
-
-			data, err := json.Marshal(brokerStatus)
+			metadata, err := check.broker.Metadata()
 			if err != nil {
-				log.Warn("Error while marshaling broker status: %s", err.Error())
-				data = simpleStatus(brokerStatus.Status)
+				reportUnhealthy(err)
+				continue
 			}
 
-			brokerUpdates <- Update{brokerStatus.Status, data}
+			zkTopics, zkBrokers, err := check.getZooKeeperMetadata()
+			if err != nil {
+				reportUnhealthy(err)
+				continue
+			}
+
+			brokerStatus := check.checkBrokerHealth(metadata, zkTopics)
+			brokerUpdates <- newBrokerUpdate(brokerStatus)
 
 			if brokerStatus.Status == unhealthy {
 				clusterUpdates <- Update{red, simpleStatus(red)}
 				log.Info("closing connection and reconnecting")
-				err := check.reconnect(stop)
-				if err != nil {
+				if err := check.reconnect(stop); err != nil {
 					log.Info("error while reconnecting:", err)
 					return
 				}
 				log.Info("reconnected")
 			} else {
-				clusterStatus := check.checkClusterHealth()
+				clusterStatus := check.checkClusterHealth(metadata, zkTopics, zkBrokers)
 				data, err := json.Marshal(clusterStatus)
 				if err != nil {
 					log.Warn("Error while marshaling cluster status: %s", err.Error())
@@ -103,17 +116,41 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 	}
 }
 
+func newBrokerUpdate(status BrokerStatus) Update {
+	data, err := json.Marshal(status)
+	if err != nil {
+		log.Warn("Error while marshaling broker status: %s", err.Error())
+		data = simpleStatus(status.Status)
+	}
+	return Update{status.Status, data}
+}
+
 func simpleStatus(status string) []byte {
 	return []byte(fmt.Sprintf(`{"status": "%s"}`, status))
 }
 
-func contains(arr []int32, id int32) bool {
-	for _, e := range arr {
+func contains(a []int32, id int32) bool {
+	for _, e := range a {
 		if e == id {
 			return true
 		}
 	}
 	return false
+}
+
+func indexOf(a []int32, id int32) (int, bool) {
+	for i, e := range a {
+		if e == id {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+func delete(a []int32, i int) []int32 {
+	copy(a[i:], a[i+1:])
+	a[len(a)-1] = 0 // or the zero value of T
+	return a[:len(a)-1]
 }
 
 func (check *HealthCheck) brokerConfig() kafka.BrokerConf {
@@ -124,7 +161,7 @@ func (check *HealthCheck) brokerConfig() kafka.BrokerConf {
 }
 
 func (check *HealthCheck) consumerConfig() kafka.ConsumerConf {
-	config := kafka.NewConsumerConf(check.config.topicName, check.partitionID)
+	config := kafka.NewConsumerConf(check.config.topicName, 0)
 	config.StartOffset = kafka.StartOffsetNewest
 	config.RequestTimeout = check.config.CheckTimeout
 	config.RetryLimit = 1

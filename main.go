@@ -40,7 +40,7 @@ func addShutdownHook() (chan struct{}, *sync.WaitGroup) {
 }
 
 var checkConfiguration = check.HealthCheckConfig{
-	CheckTimeout:     100 * time.Millisecond,
+	CheckTimeout:     200 * time.Millisecond,
 	DataWaitInterval: 20 * time.Millisecond,
 	MessageLength:    20,
 }
