@@ -27,7 +27,7 @@ type ReplicationStatus struct {
 }
 
 // sends one message to the broker partition, wait for it to appear on the consumer.
-func (check *HealthCheck) checkBrokerHealth(metadata *proto.MetadataResp, zkTopics []ZkTopic) BrokerStatus {
+func (check *HealthCheck) checkBrokerHealth(metadata *proto.MetadataResp) BrokerStatus {
 	status := unhealthy
 	payload := randomBytes(check.config.MessageLength, check.randSrc)
 	message := &proto.Message{Value: []byte(payload)}
@@ -42,7 +42,7 @@ func (check *HealthCheck) checkBrokerHealth(metadata *proto.MetadataResp, zkTopi
 	if status == healthy {
 		check.producer.Produce(check.config.replicationTopicName, check.replicationPartitionID, message)
 		check.brokerInSync(&brokerStatus, metadata)
-		check.brokerReplicates(&brokerStatus, zkTopics)
+		check.brokerReplicates(&brokerStatus, metadata)
 	}
 
 	return brokerStatus
@@ -92,16 +92,20 @@ func (check *HealthCheck) brokerInSync(brokerStatus *BrokerStatus, metadata *pro
 
 var replicationFailureCount uint = 0
 
-func (check *HealthCheck) brokerReplicates(brokerStatus *BrokerStatus, zkTopics []ZkTopic) {
+func (check *HealthCheck) brokerReplicates(brokerStatus *BrokerStatus, metadata *proto.MetadataResp) {
 	brokerID := int32(check.config.brokerID)
 
-	for _, zkTopic := range zkTopics {
-		if zkTopic.Name != check.config.replicationTopicName {
+	topic, ok := findTopic(check.config.replicationTopicName, metadata)
+	if !ok {
+		return
+	}
+
+	for _, p := range topic.Partitions {
+		if p.ID != check.replicationPartitionID {
 			continue
 		}
-		replicas := zkTopic.Partitions[0].Replicas
 
-		if !contains(replicas, brokerID) {
+		if !contains(p.Isrs, brokerID) {
 			replicationFailureCount += 1
 			if replicationFailureCount > check.config.replicationFailureThreshold {
 				brokerStatus.Status = unhealthy

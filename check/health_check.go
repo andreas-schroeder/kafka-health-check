@@ -89,7 +89,7 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 				continue
 			}
 
-			brokerStatus := check.checkBrokerHealth(metadata, zkTopics)
+			brokerStatus := check.checkBrokerHealth(metadata)
 			brokerUpdates <- newBrokerUpdate(brokerStatus)
 
 			if brokerStatus.Status == unhealthy {
@@ -147,7 +147,7 @@ func indexOf(a []int32, id int32) (int, bool) {
 	return -1, false
 }
 
-func delete(a []int32, i int) []int32 {
+func sliceDel(a []int32, i int) []int32 {
 	copy(a[i:], a[i+1:])
 	a[len(a)-1] = 0 // or the zero value of T
 	return a[:len(a)-1]

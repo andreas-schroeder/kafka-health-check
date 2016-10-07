@@ -313,7 +313,7 @@ func (check *HealthCheck) deleteTopic(zkConn ZkConnection, chroot, name string, 
 		if !ok {
 			return fmt.Errorf(`Cannot find broker in replicas of partition %d in topic "%s"`, partitionID, name)
 		}
-		replicas = delete(replicas, i)
+		replicas = sliceDel(replicas, i)
 		log.Info("Shrinking replication check topic to exclude broker ", brokerID)
 		return reassignPartition(zkConn, partitionID, replicas, name, chroot)
 	}

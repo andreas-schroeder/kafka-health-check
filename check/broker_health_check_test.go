@@ -17,7 +17,7 @@ func Test_checkBrokerHealth_WhenProducedMessageIsConsumed_ReturnsHealthy(t *test
 	check := newTestCheck()
 	workingBroker(check, ctrl, stop)
 
-	status := check.checkBrokerHealth(outOfSyncMetadata(), healthyZkTopics())
+	status := check.checkBrokerHealth(outOfSyncMetadata())
 
 	if status.Status != healthy {
 		t.Errorf("checkBrokerHealth returned %s, expected %s", status.Status, healthy)
@@ -32,7 +32,7 @@ func Test_checkBrokerHealth_WhenProducedMessageIsNotConsumed_ReturnsUnhealthy(t 
 	stop := brokenBroker(check, ctrl)
 	defer close(stop)
 
-	status := check.checkBrokerHealth(outOfSyncMetadata(), healthyZkTopics())
+	status := check.checkBrokerHealth(outOfSyncMetadata())
 
 	if status.Status != unhealthy {
 		t.Errorf("checkBrokerHealth returned %s, expected %s", status.Status, unhealthy)
@@ -48,7 +48,7 @@ func Test_checkBrokerHealth_WhenProducedMessageIsConsumedAndInSync_ReturnsInSync
 	check := newTestCheck()
 	workingBroker(check, ctrl, stop)
 
-	status := check.checkBrokerHealth(inSyncMetadata(), healthyZkTopics())
+	status := check.checkBrokerHealth(inSyncMetadata())
 
 	if status.Status != insync {
 		t.Errorf("checkBrokerHealth returned %s, expected %s", status.Status, insync)
