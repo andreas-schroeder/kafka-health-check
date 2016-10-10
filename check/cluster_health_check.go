@@ -1,6 +1,8 @@
 package check
 
 import (
+	"fmt"
+
 	"github.com/optiopay/kafka/proto"
 )
 
@@ -12,14 +14,13 @@ type ClusterStatus struct {
 }
 
 type TopicStatus struct {
-	Topic      string `json:"topic"`
-	Status     string
-	ZooKeeper  string            `json:"zookeeper,omitempty"`
-	Partitions []PartitionStatus `json:"partitions,omitempty"`
+	Topic      string                     `json:"topic"`
+	Status     string                     `json:"status"`
+	ZooKeeper  string                     `json:"zookeeper,omitempty"`
+	Partitions map[string]PartitionStatus `json:"partitions,omitempty"`
 }
 
 type PartitionStatus struct {
-	ID                int32   `json:"id"`
 	Status            string  `json:"status"`
 	ZooKeeper         string  `json:"zookeeper,omitempty"`
 	OutOfSyncReplicas []int32 `json:"OSR,omitempty"`
@@ -82,7 +83,7 @@ func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []Z
 	status = green
 	for _, topic := range metadata.Topics {
 		zkTopic, ok := zkTopicMap[topic.Name]
-		topicStatus := TopicStatus{Topic: topic.Name, Status: green}
+		topicStatus := TopicStatus{Topic: topic.Name, Status: green, Partitions: make(map[string]PartitionStatus)}
 		if !ok {
 			topicStatus.Status = red
 			topicStatus.ZooKeeper = "Missing ZooKeeper metadata"
@@ -110,7 +111,7 @@ func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []Z
 }
 
 func checkPartition(partition *proto.MetadataRespPartition, zkPartitionMap map[int32]ZkPartition, topicStatus *TopicStatus) string {
-	status := PartitionStatus{ID: partition.ID, Status: green}
+	status := PartitionStatus{Status: green}
 
 	replicas := partition.Replicas
 
@@ -134,7 +135,8 @@ func checkPartition(partition *proto.MetadataRespPartition, zkPartitionMap map[i
 		status.Status = red // partition is offline.
 	}
 	if status.Status != green {
-		topicStatus.Partitions = append(topicStatus.Partitions, status)
+		ID := fmt.Sprintf("%d", partition.ID)
+		topicStatus.Partitions[ID] = status
 	}
 
 	return status.Status

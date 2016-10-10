@@ -81,15 +81,16 @@ The returned json contains details about metadata status and partition replicati
 ```
 $ curl -s localhost:8000/cluster
 {"status":"yellow","topics":[
-  {"topic":"mytopic","Status":"yellow","partitions":[
-      {"id":2,"status":"yellow","OSR":[3]},{"id":1,"status":"yellow","OSR":[3]}
-  ]}
+  {"topic":"mytopic","Status":"yellow","partitions":{
+      "2":{"status":"yellow","OSR":[3]},
+      "1":{"status":"yellow","OSR":[3]}
+  }}
 ]}
 ```
 
 The fields for additional info and structures are:
-* `topics` for topic replication status: `[{"topic":"mytopic","Status":"yellow","partitions":[{"id":2,"status":"yellow","OSR":[3]}]`
-   In this data, `OSR` means out-of-sync replica, and contains the list of all brokers that are not in the ISR. 
+* `topics` for topic replication status: `[{"topic":"mytopic","Status":"yellow","partitions":{"2":{"status":"yellow","OSR":[3]}}}]`
+   In this data, `OSR` means out-of-sync replica and contains the list of all brokers that are not in the ISR.
 * `metadata` for inconsistencies between ZooKeeper and Kafka metadata: `[{"broker":3,"status":"red","problem":"Missing in ZooKeeper"}]`
 * `zookeeper` for problems with ZooKeeper connection or data, contains a single string: `"Fetching brokers failed: ..."`
 
@@ -124,13 +125,13 @@ Run `make` to build after running `make deps` to restore the dependencies using 
   find the health check topic, and creates it if missing by communicating directly with ZooKeeper(configuration:
   10 seconds message lifetime, one single partition assigned to the broker to check).
   This behavior can be disabled by using `-no-topic-creation`.
-* The check also creates one replication check topic for the whole cluster. This topic is expanded to all brokers 
+* The check also creates one replication check topic for the whole cluster. This topic is expanded to all brokers
   that are checked.
 * When shutting down, the check deletes to health check topic partition by communicating directly with ZooKeeper.
   It also shrinks the partition assignment of the replication check topic, and deletes it when stopping the last
   health check process. This behavior can be disabled by using `-no-topic-creation`.
-* The check will try to create the health check and replication check topics only on its first connection after startup. 
+* The check will try to create the health check and replication check topics only on its first connection after startup.
   If the topic disappears later while the check is running, it will not try to re-create its topics.
 * If the broker health check fails, the cluster health will be set to `red`.
-* For each check pass, the Kafka cluster metadata is fetched from ZooKeeper, i.e. the full data on brokers and topic 
+* For each check pass, the Kafka cluster metadata is fetched from ZooKeeper, i.e. the full data on brokers and topic
   partitions with replicas.
