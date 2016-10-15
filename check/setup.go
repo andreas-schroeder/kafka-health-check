@@ -230,7 +230,7 @@ func reassignPartition(zk ZkConnection, partitionID int32, replicas []int32, top
 		time.Sleep(1 * time.Second)
 		exists, _, err := zk.Exists(chroot + "/admin/reassign_partitions")
 		if err != nil {
-			log.Warn("Error while checking if node exists", err)
+			log.Warn("Error while checking if reassign_partitions node exists", err)
 		}
 		repeat = exists || err != nil
 	}
