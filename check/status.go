@@ -1,6 +1,9 @@
 package check
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 const (
 	insync    = "sync"
@@ -11,6 +14,11 @@ const (
 	yellow = "yellow"
 	red    = "red"
 )
+
+type StatusReport interface {
+	Summary() string
+	Json() ([]byte, error)
+}
 
 type BrokerStatus struct {
 	Status              string              `json:"status"`
@@ -51,4 +59,22 @@ type BrokerMetadata struct {
 
 func simpleStatus(status string) []byte {
 	return []byte(fmt.Sprintf(`{"status": "%s"}`, status))
+}
+
+func (s BrokerStatus) Summary() string {
+	return s.Status
+}
+
+func (s ClusterStatus) Summary() string {
+	return s.Status
+}
+
+func (s BrokerStatus) Json() (data []byte, err error) {
+	data, err = json.Marshal(s)
+	return
+}
+
+func (s ClusterStatus) Json() (data []byte, err error) {
+	data, err = json.Marshal(s)
+	return
 }

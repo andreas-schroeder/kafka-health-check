@@ -1,7 +1,6 @@
 package check
 
 import (
-	"encoding/json"
 	"math/rand"
 	"time"
 
@@ -89,7 +88,7 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 			}
 
 			brokerStatus := check.checkBrokerHealth(metadata)
-			brokerUpdates <- newBrokerUpdate(brokerStatus)
+			brokerUpdates <- newUpdate(brokerStatus, "broker")
 
 			if brokerStatus.Status == unhealthy {
 				clusterUpdates <- Update{red, simpleStatus(red)}
@@ -101,7 +100,7 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 				log.Info("reconnected")
 			} else {
 				clusterStatus := check.checkClusterHealth(metadata, zkTopics, zkBrokers)
-				clusterUpdates <- newClusterUpdate(clusterStatus)
+				clusterUpdates <- newUpdate(clusterStatus, "cluster")
 			}
 		case <-stop:
 			return
@@ -109,23 +108,13 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 	}
 }
 
-func newBrokerUpdate(status BrokerStatus) Update {
-	data, err := json.Marshal(status)
+func newUpdate(report StatusReport, name string) Update {
+	data, err := report.Json()
 	if err != nil {
-		log.Warn("Error while marshaling broker status: %s", err.Error())
-		data = simpleStatus(status.Status)
+		log.Warn("Error while marshaling %s status: %s", name, err.Error())
+		data = simpleStatus(report.Summary())
 	}
-	return Update{status.Status, data}
-}
-
-func newClusterUpdate(status ClusterStatus) Update {
-	data, err := json.Marshal(status)
-	if err != nil {
-		log.Warn("Error while marshaling cluster status: %s", err.Error())
-		data = simpleStatus(status.Status)
-	}
-
-	return Update{status.Status, data}
+	return Update{report.Summary(), data}
 }
 
 func (check *HealthCheck) brokerConfig() kafka.BrokerConf {
