@@ -49,22 +49,60 @@ func mockBroker(check *HealthCheck, ctrl *gomock.Controller) (*MockBrokerConnect
 	return connection, broker, consumer, producer
 }
 
+func workingBroker(check *HealthCheck, ctrl *gomock.Controller, stop <-chan struct{}) *MockBrokerConnection {
+	connection, broker, consumer, _ := mockBroker(check, ctrl)
+
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				messages, err := broker.ReadProducers(1 * time.Millisecond)
+				if err != nil {
+					continue
+				}
+				for _, message := range messages.Messages {
+					consumer.Messages <- message
+				}
+			}
+		}
+	}()
+
+	return connection
+}
+
+func brokenBroker(check *HealthCheck, ctrl *gomock.Controller) chan struct{} {
+	_, broker, consumer, _ := mockBroker(check, ctrl)
+
+	stop := make(chan struct{})
+	ticker := time.NewTicker(5 * time.Millisecond)
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				_, _ = broker.ReadProducers(1 * time.Millisecond)
+			}
+		}
+	}()
+
+	go func() {
+		select {
+		case <-ticker.C:
+			consumer.Errors <- kafka.ErrNoData
+		case <-stop:
+			ticker.Stop()
+			return
+		}
+	}()
+
+	return stop
+}
+
 func healthyMetadata(topicNames ...string) *proto.MetadataResp {
-	topics := []proto.MetadataRespTopic{
-		{
-			Name: "some-other-topic",
-			Err:  nil,
-			Partitions: []proto.MetadataRespPartition{
-				{
-					ID:       1,
-					Err:      nil,
-					Leader:   int32(1),
-					Replicas: []int32{1},
-					Isrs:     []int32{1},
-				},
-			},
-		},
-	}
+	var topics []proto.MetadataRespTopic
 
 	for _, name := range topicNames {
 		topics = append(topics, proto.MetadataRespTopic{
@@ -141,15 +179,6 @@ func healthyZkTopics() []ZkTopic {
 				{
 					ID:       2,
 					Replicas: []int32{2, 1},
-				},
-			},
-		},
-		{
-			Name: "some-other-topic",
-			Partitions: []ZkPartition{
-				{
-					ID:       1,
-					Replicas: []int32{1},
 				},
 			},
 		},
@@ -264,21 +293,6 @@ func metadataWithoutBroker() *proto.MetadataResp {
 				Port:   int32(9092),
 			},
 		},
-		Topics: []proto.MetadataRespTopic{
-			{
-				Name: "some-other-topic",
-				Err:  nil,
-				Partitions: []proto.MetadataRespPartition{
-					{
-						ID:       1,
-						Err:      nil,
-						Leader:   int32(2),
-						Replicas: []int32{},
-						Isrs:     []int32{},
-					},
-				},
-			},
-		},
 	}
 }
 
@@ -318,12 +332,12 @@ func (zookeeper *MockZkConnection) mockFailingPathCreation(path string) {
 	zookeeper.EXPECT().Create(path, gomock.Any(), int32(0), gomock.Any()).Return("", errors.New("Test error"))
 }
 
-func (zk *MockZkConnection) mockHealthyMetadata(topic string, replication string) {
+func (zk *MockZkConnection) mockHealthyMetadata(topics ...string) {
 	zk.EXPECT().Connect([]string{"localhost:2181"}, 10*time.Second).Return(nil, nil)
 	zk.EXPECT().Children("/brokers/ids").Return([]string{"1", "2"}, nil, nil)
-	zk.EXPECT().Children("/brokers/topics").Return([]string{topic, replication, "some-other-topic"}, nil, nil)
-	zk.EXPECT().Get("/brokers/topics/"+topic).Return([]byte(`{"version":1,"partitions":{"2":[1, 2]}}`), nil, nil)
-	zk.EXPECT().Get("/brokers/topics/"+replication).Return([]byte(`{"version":1,"partitions":{"2":[1, 2]}}`), nil, nil)
-	zk.EXPECT().Get("/brokers/topics/some-other-topic").Return([]byte(`{"version":1,"partitions":{"1":[1]}}`), nil, nil)
+	zk.EXPECT().Children("/brokers/topics").Return(topics, nil, nil)
+	for _, topic := range topics {
+		zk.EXPECT().Get("/brokers/topics/"+topic).Return([]byte(`{"version":1,"partitions":{"2":[1, 2]}}`), nil, nil)
+	}
 	zk.EXPECT().Close()
 }

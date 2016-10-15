@@ -12,6 +12,7 @@ deps:
 test: build
 	@go fmt . ./check
 	@go vet . ./check
+	@go test ./check
 	@go test -v -race ./check
 
 compatibility: build

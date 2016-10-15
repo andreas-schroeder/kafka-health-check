@@ -1,14 +1,15 @@
 // +build !race
 
+package check
+
 // data races reported are false positives triggered by sequential tests.
 // those races revolve around assignment of http.DefaultServeMux in
 // status_server.go. As a goroutine creation creates a happens-before edge
 // (https://golang.org/ref/mem#tmp_5), I do not see an actuall concurrency issue
 // in the production code - but maybe that's just me.
 
-package check
-
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -22,7 +23,7 @@ func Test_ServeHealth_DefaultBrokerStatusIsUnhealthy(t *testing.T) {
 
 	response := waitForResponse("http://localhost:8000/", t)
 
-	if response != unhealthy {
+	if response != fmt.Sprintf(`{"status":"%s"}`, unhealthy) {
 		t.Errorf("Broker health is reported as %s expected is %s", response, unhealthy)
 	}
 	close(stop)
@@ -34,7 +35,7 @@ func Test_ServeHealth_DefaultClusterStatusIsRed(t *testing.T) {
 
 	response := waitForResponse("http://localhost:8000/cluster", t)
 
-	if response != red {
+	if response != fmt.Sprintf(`{"status":"%s"}`, red) {
 		t.Errorf("Cluster health is reported as %s expected is %s", response, red)
 	}
 	close(stop)

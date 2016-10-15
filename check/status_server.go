@@ -25,7 +25,7 @@ func (check *HealthCheck) ServeHealth(brokerUpdates <-chan Update, clusterUpdate
 				case update := <-updates:
 
 					if !bytes.Equal(status.Data, update.Data) {
-						log.Println(name, "now reported as", string(update.Data))
+						log.WithField("status", string(update.Data)).Info(name, "now reported as", update.Status)
 						status = update
 					}
 
@@ -49,8 +49,8 @@ func (check *HealthCheck) ServeHealth(brokerUpdates <-chan Update, clusterUpdate
 	}
 
 	http.DefaultServeMux = http.NewServeMux()
-	statusServer("broker", "/", unhealthy, brokerUpdates)
 	statusServer("cluster", "/cluster", red, clusterUpdates)
+	statusServer("broker", "/", unhealthy, brokerUpdates)
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {

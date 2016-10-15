@@ -216,7 +216,7 @@ func maybeExpandReplicationTopic(zk ZkConnection, brokerID, partitionID int32, t
 	replicas := partition.Replicas
 	if !contains(replicas, brokerID) {
 		log.Info("Expanding replication check topic to include broker ", brokerID)
-		replicas := append(replicas, brokerID)
+		replicas = append(replicas, brokerID)
 
 		return reassignPartition(zk, partitionID, replicas, topicName, chroot)
 	}
@@ -309,12 +309,8 @@ func (check *HealthCheck) deleteTopic(zkConn ZkConnection, chroot, name string, 
 	brokerID := int32(check.config.brokerID)
 	replicas := partition.Replicas
 	if len(replicas) > 1 {
-		i, ok := indexOf(replicas, brokerID)
-		if !ok {
-			return fmt.Errorf(`Cannot find broker in replicas of partition %d in topic "%s"`, partitionID, name)
-		}
-		replicas = sliceDel(replicas, i)
 		log.Info("Shrinking replication check topic to exclude broker ", brokerID)
+		replicas = delAll(replicas, brokerID)
 		return reassignPartition(zkConn, partitionID, replicas, name, chroot)
 	}
 

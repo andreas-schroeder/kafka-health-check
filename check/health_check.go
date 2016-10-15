@@ -1,12 +1,14 @@
 package check
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"math/rand"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+
 	"encoding/json"
 	"fmt"
+
 	"github.com/optiopay/kafka"
 )
 
@@ -102,13 +104,7 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 				log.Info("reconnected")
 			} else {
 				clusterStatus := check.checkClusterHealth(metadata, zkTopics, zkBrokers)
-				data, err := json.Marshal(clusterStatus)
-				if err != nil {
-					log.Warn("Error while marshaling cluster status: %s", err.Error())
-					data = simpleStatus(clusterStatus.Status)
-				}
-
-				clusterUpdates <- Update{clusterStatus.Status, data}
+				clusterUpdates <- newClusterUpdate(clusterStatus)
 			}
 		case <-stop:
 			return
@@ -125,32 +121,18 @@ func newBrokerUpdate(status BrokerStatus) Update {
 	return Update{status.Status, data}
 }
 
+func newClusterUpdate(status ClusterStatus) Update {
+	data, err := json.Marshal(status)
+	if err != nil {
+		log.Warn("Error while marshaling cluster status: %s", err.Error())
+		data = simpleStatus(status.Status)
+	}
+
+	return Update{status.Status, data}
+}
+
 func simpleStatus(status string) []byte {
 	return []byte(fmt.Sprintf(`{"status": "%s"}`, status))
-}
-
-func contains(a []int32, id int32) bool {
-	for _, e := range a {
-		if e == id {
-			return true
-		}
-	}
-	return false
-}
-
-func indexOf(a []int32, id int32) (int, bool) {
-	for i, e := range a {
-		if e == id {
-			return i, true
-		}
-	}
-	return -1, false
-}
-
-func sliceDel(a []int32, i int) []int32 {
-	copy(a[i:], a[i+1:])
-	a[len(a)-1] = 0 // or the zero value of T
-	return a[:len(a)-1]
 }
 
 func (check *HealthCheck) brokerConfig() kafka.BrokerConf {
