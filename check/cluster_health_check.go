@@ -6,38 +6,6 @@ import (
 	"github.com/optiopay/kafka/proto"
 )
 
-type ClusterStatus struct {
-	Status    string           `json:"status"`
-	Topics    []TopicStatus    `json:"topics,omitempty"`
-	Metadata  []BrokerMetadata `json:"metadata,omitempty"`
-	ZooKeeper string           `json:"zookeeper-connection,omitempty"`
-}
-
-type TopicStatus struct {
-	Topic      string                     `json:"topic"`
-	Status     string                     `json:"status"`
-	ZooKeeper  string                     `json:"zookeeper,omitempty"`
-	Partitions map[string]PartitionStatus `json:"partitions,omitempty"`
-}
-
-type PartitionStatus struct {
-	Status            string  `json:"status"`
-	ZooKeeper         string  `json:"zookeeper,omitempty"`
-	OutOfSyncReplicas []int32 `json:"OSR,omitempty"`
-}
-
-type BrokerMetadata struct {
-	ID      int32  `json:"broker"`
-	Status  string `json:"status"`
-	Problem string `json:"problem"`
-}
-
-const (
-	green  = "green"
-	yellow = "yellow"
-	red    = "red"
-)
-
 // periodically checks health of the Kafka cluster
 func (check *HealthCheck) checkClusterHealth(metadata *proto.MetadataResp, zkTopics []ZkTopic, zkBrokers []int32) ClusterStatus {
 	clusterStatus := ClusterStatus{Status: green}

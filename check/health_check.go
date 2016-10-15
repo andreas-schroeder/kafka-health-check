@@ -1,14 +1,11 @@
 package check
 
 import (
+	"encoding/json"
 	"math/rand"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-
-	"encoding/json"
-	"fmt"
-
 	"github.com/optiopay/kafka"
 )
 
@@ -129,10 +126,6 @@ func newClusterUpdate(status ClusterStatus) Update {
 	}
 
 	return Update{status.Status, data}
-}
-
-func simpleStatus(status string) []byte {
-	return []byte(fmt.Sprintf(`{"status": "%s"}`, status))
 }
 
 func (check *HealthCheck) brokerConfig() kafka.BrokerConf {

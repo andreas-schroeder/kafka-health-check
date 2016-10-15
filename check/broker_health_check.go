@@ -9,23 +9,6 @@ import (
 	"github.com/optiopay/kafka/proto"
 )
 
-const (
-	insync    = "sync"
-	healthy   = "imok"
-	unhealthy = "nook"
-)
-
-type BrokerStatus struct {
-	Status              string              `json:"status"`
-	OutOfSync           []ReplicationStatus `json:"out-of-sync,omitempty"`
-	ReplicationFailures uint                `json:"replication-failures,omitempty"`
-}
-
-type ReplicationStatus struct {
-	Topic     string `json:"topic"`
-	Partition int32  `json:"partition"`
-}
-
 // sends one message to the broker partition, wait for it to appear on the consumer.
 func (check *HealthCheck) checkBrokerHealth(metadata *proto.MetadataResp) BrokerStatus {
 	status := unhealthy

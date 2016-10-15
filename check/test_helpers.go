@@ -138,7 +138,25 @@ func healthyMetadata(topicNames ...string) *proto.MetadataResp {
 	}
 }
 
-func outOfSyncMetadata() *proto.MetadataResp {
+func outOfSyncMetadata(topicNames ...string) *proto.MetadataResp {
+	var topics []proto.MetadataRespTopic
+
+	for _, name := range topicNames {
+		topics = append(topics, proto.MetadataRespTopic{
+			Name: name,
+			Err:  nil,
+			Partitions: []proto.MetadataRespPartition{
+				{
+					ID:       2,
+					Err:      nil,
+					Leader:   int32(1),
+					Replicas: []int32{1, 2},
+					Isrs:     []int32{2},
+				},
+			},
+		})
+	}
+
 	return &proto.MetadataResp{
 		CorrelationID: int32(1),
 		Brokers: []proto.MetadataRespBroker{
@@ -153,21 +171,7 @@ func outOfSyncMetadata() *proto.MetadataResp {
 				Port:   int32(9092),
 			},
 		},
-		Topics: []proto.MetadataRespTopic{
-			{
-				Name: "some-topic",
-				Err:  nil,
-				Partitions: []proto.MetadataRespPartition{
-					{
-						ID:       1,
-						Err:      nil,
-						Leader:   int32(2),
-						Replicas: []int32{2, 1},
-						Isrs:     []int32{2},
-					},
-				},
-			},
-		},
+		Topics: topics,
 	}
 }
 

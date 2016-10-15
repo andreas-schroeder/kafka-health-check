@@ -19,13 +19,13 @@ func (check *HealthCheck) ServeHealth(brokerUpdates <-chan Update, clusterUpdate
 
 		// goroutine that encapsulates the current status
 		go func() {
-			status := Update{errorStatus, []byte(fmt.Sprintf(`{"status":"%s"}`, errorStatus))}
+			status := Update{errorStatus, simpleStatus(errorStatus)}
 			for {
 				select {
 				case update := <-updates:
 
 					if !bytes.Equal(status.Data, update.Data) {
-						log.WithField("status", string(update.Data)).Info(name, "now reported as", update.Status)
+						log.WithField("status", string(update.Data)).Info(name, " now reported as ", update.Status)
 						status = update
 					}
 

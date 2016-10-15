@@ -14,7 +14,7 @@ func Test_checkBrokerHealth_WhenProducedMessageIsConsumed_ReturnsHealthy(t *test
 	check := newTestCheck()
 	workingBroker(check, ctrl, stop)
 
-	status := check.checkBrokerHealth(outOfSyncMetadata())
+	status := check.checkBrokerHealth(outOfSyncMetadata("some-topic"))
 
 	if status.Status != healthy {
 		t.Errorf("checkBrokerHealth returned %s, expected %s", status.Status, healthy)
@@ -29,10 +29,44 @@ func Test_checkBrokerHealth_WhenProducedMessageIsNotConsumed_ReturnsUnhealthy(t 
 	stop := brokenBroker(check, ctrl)
 	defer close(stop)
 
-	status := check.checkBrokerHealth(outOfSyncMetadata())
+	status := check.checkBrokerHealth(outOfSyncMetadata("some-topic"))
 
 	if status.Status != unhealthy {
 		t.Errorf("checkBrokerHealth returned %s, expected %s", status.Status, unhealthy)
+	}
+}
+
+func Test_checkBrokerHealth_WhenProducedMessageIsConsumedAndFailsToReplicate_ReturnsUnhealthy(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	check := newTestCheck()
+	stop := make(chan struct{})
+	workingBroker(check, ctrl, stop)
+	defer close(stop)
+
+	check.config.replicationFailureThreshold = 0
+	check.replicationPartitionID = 2
+	status := check.checkBrokerHealth(outOfSyncMetadata(check.config.replicationTopicName))
+
+	if status.Status != unhealthy {
+		t.Errorf("checkBrokerHealth returned %s, expected %s", status.Status, unhealthy)
+	}
+}
+
+func Test_checkBrokerHealth_WhenProducedMessageIsConsumedButOutOfSync_ReturnsUnhealthy(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	check := newTestCheck()
+	stop := make(chan struct{})
+	workingBroker(check, ctrl, stop)
+	defer close(stop)
+
+	status := check.checkBrokerHealth(outOfSyncMetadata("some-topic"))
+
+	if status.Status != healthy {
+		t.Errorf("checkBrokerHealth returned %s, expected %s", status.Status, healthy)
 	}
 }
 

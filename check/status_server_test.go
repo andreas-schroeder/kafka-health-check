@@ -9,22 +9,17 @@ package check
 // in the production code - but maybe that's just me.
 
 import (
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"sync"
 	"testing"
-	"time"
 )
 
 func Test_ServeHealth_DefaultBrokerStatusIsUnhealthy(t *testing.T) {
 	awaitServer, stop, _, _ := newServerSetup()
 
 	response := waitForResponse("http://localhost:8000/", t)
+	expected := string(simpleStatus(unhealthy))
 
-	if response != fmt.Sprintf(`{"status":"%s"}`, unhealthy) {
-		t.Errorf("Broker health is reported as %s expected is %s", response, unhealthy)
+	if response != expected {
+		t.Errorf("Broker health is reported as %s expected is %s", response, expected)
 	}
 	close(stop)
 	awaitServer.Wait()
@@ -34,9 +29,10 @@ func Test_ServeHealth_DefaultClusterStatusIsRed(t *testing.T) {
 	awaitServer, stop, _, _ := newServerSetup()
 
 	response := waitForResponse("http://localhost:8000/cluster", t)
+	expected := string(simpleStatus(red))
 
-	if response != fmt.Sprintf(`{"status":"%s"}`, red) {
-		t.Errorf("Cluster health is reported as %s expected is %s", response, red)
+	if response != expected {
+		t.Errorf("Cluster health is reported as %s expected is %s", response, expected)
 	}
 	close(stop)
 	awaitServer.Wait()
@@ -66,60 +62,4 @@ func Test_ServeHealth_UpdatesClusterBrokerStatus(t *testing.T) {
 	}
 	close(stop)
 	awaitServer.Wait()
-}
-
-func newServerSetup() (awaitServer *sync.WaitGroup, stop chan struct{}, brokerUpdates, clusterUpdates chan Update) {
-	check := newTestCheck()
-	awaitServer = &sync.WaitGroup{}
-	stop = make(chan struct{})
-	brokerUpdates, clusterUpdates = make(chan Update, 2), make(chan Update, 2)
-	awaitServer.Add(1)
-	go func() {
-		check.ServeHealth(brokerUpdates, clusterUpdates, stop)
-		awaitServer.Done()
-	}()
-
-	return
-}
-
-func waitForResponse(url string, t *testing.T) string {
-	for retries := 30; retries > 0; retries-- {
-		if retries < 30 {
-			time.Sleep(100 * time.Millisecond)
-		}
-		res, err := http.Get(url)
-		if err != nil {
-			continue
-		}
-		statusBytes, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			continue
-		}
-		return strings.TrimSpace(string(statusBytes))
-	}
-
-	t.Error("Did not receive an answer from", url, "whithin timeout")
-	return ""
-}
-
-func waitForExpectedResponse(url, expected string) bool {
-	for retries := 30; retries > 0; retries-- {
-		if retries < 30 {
-			time.Sleep(100 * time.Millisecond)
-		}
-		res, err := http.Get(url)
-		if err != nil {
-			continue
-		}
-		statusBytes, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			continue
-		}
-		status := strings.TrimSpace(string(statusBytes))
-		if status == expected {
-			return true
-		}
-	}
-
-	return false
 }
