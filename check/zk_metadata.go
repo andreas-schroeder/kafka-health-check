@@ -3,10 +3,10 @@ package check
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
-	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 type ZkTopic struct {
@@ -16,7 +16,7 @@ type ZkTopic struct {
 
 type ZkPartition struct {
 	ID       int32
-	Replicas []int32 `json:"replica"`
+	Replicas []int32
 }
 
 func (check *HealthCheck) getZooKeeperMetadata() (topics []ZkTopic, brokers []int32, err error) {
@@ -78,18 +78,18 @@ func zkTopics(zk ZkConnection, chroot string) (topics []ZkTopic, err error) {
 }
 
 func zkPartitions(zk ZkConnection, name, chroot string) (partitions []ZkPartition, err error) {
-	partitionsPath := chroot + "/brokers/topics/" + name
-	dataBytes, _, err := zk.Get(partitionsPath)
+	topicPath := chroot + "/brokers/topics/" + name
+	dataBytes, _, err := zk.Get(topicPath)
 	if err != nil {
 		return nil, err
 	}
-	partitions, err = parseZkPartitions(dataBytes, partitionsPath)
+	partitions, err = parseZkPartitions(dataBytes, topicPath)
 	return
 }
 
-func parseZkPartitions(dataBytes []byte, partitionsPath string) (partitions []ZkPartition, err error) {
-	var data interface{}
-	err = json.Unmarshal(dataBytes, &data)
+func parseZkPartitions(dataBytes []byte, topicPath string) (zkPartitions []ZkPartition, err error) {
+	var topic interface{}
+	err = json.Unmarshal(dataBytes, &topic)
 	if err != nil {
 		return nil, err
 	}
@@ -97,43 +97,52 @@ func parseZkPartitions(dataBytes []byte, partitionsPath string) (partitions []Zk
 	parseError := func(detailsFmt string, a ...interface{}) error {
 		details := fmt.Sprintf(detailsFmt, a...)
 		return errors.New(fmt.Sprintf(
-			"Unexpected partition data content: %s\nPath is %s\nPartition data is %s", details, partitionsPath, string(dataBytes)))
+			"Unexpected partition data content: %s\nPath is %s\nPartition data is %s", details, topicPath, string(dataBytes)))
 	}
 
-	switch m := data.(type) {
+	parseZkReplicas := func(replicas interface{}) (zkReplicas []int32, err error) {
+		switch replicas := replicas.(type) {
+		default:
+			return nil, parseError("Unable to parse replica id array from %v of type %T", replicas, replicas)
+		case []interface{}:
+			for _, replica := range replicas {
+				switch replica := replica.(type) {
+				default:
+					return nil, parseError("Unable to parse replica id from %s of type %T", replica, replica)
+				case float64:
+					zkReplicas = append(zkReplicas, int32(replica))
+				}
+			}
+		}
+		return
+	}
+
+	switch topic := topic.(type) {
+	default:
+		return nil, parseError("Data is no json object, but %T", topic)
 	case map[string]interface{}:
-		partitionsAttr, ok := m["partitions"]
+		partitions, ok := topic["partitions"]
 		if !ok {
 			return nil, parseError("Json attribute 'partitions' not found")
 		}
-		switch partitionsObj := partitionsAttr.(type) {
+		switch partitions := partitions.(type) {
+		default:
+			return nil, parseError("Json 'partitions' attribute does not contain json object, but %T", partitions)
 		case map[string]interface{}:
-			for k, v := range partitionsObj {
-				id, err := strconv.Atoi(k)
-				partition := ZkPartition{ID: int32(id)}
+			for id, replicas := range partitions {
+				id, err := strconv.Atoi(id)
 				if err != nil {
 					return nil, parseError("Unable to parse partition ID from %s: %s", id, err.Error())
 				}
-				switch replicas := v.(type) {
-				case []interface{}:
-					for _, replicaValue := range replicas {
-						switch replica := replicaValue.(type) {
-						case float64:
-							partition.Replicas = append(partition.Replicas, int32(replica))
-						default:
-							return nil, parseError("Unable to parse replica id from %s of type %s", replica, reflect.TypeOf(replica))
-						}
-					}
-				default:
-					return nil, parseError("Unable to parse replica id array from %v of type %s", replicas, reflect.TypeOf(replicas))
+				zkPartition := ZkPartition{ID: int32(id)}
+				zkReplicas, err := parseZkReplicas(replicas)
+				if err != nil {
+					return nil, err
 				}
-				partitions = append(partitions, partition)
+				zkPartition.Replicas = zkReplicas
+				zkPartitions = append(zkPartitions, zkPartition)
 			}
-		default:
-			return nil, parseError("Json 'partitions' attribute does not contain json object, but %s", reflect.TypeOf(partitionsAttr))
 		}
-	default:
-		return nil, parseError("Data is no json object, but %s", reflect.TypeOf(data))
 	}
 
 	return

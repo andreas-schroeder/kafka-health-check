@@ -9,16 +9,13 @@ import (
 // periodically checks health of the Kafka cluster
 func (check *HealthCheck) checkClusterHealth(metadata *proto.MetadataResp, zkTopics []ZkTopic, zkBrokers []int32) ClusterStatus {
 	clusterStatus := ClusterStatus{Status: green}
-	mStatus := check.checkBrokerMetadata(metadata, zkBrokers, &clusterStatus)
-	tStatus := check.checkTopics(metadata, zkTopics, &clusterStatus)
-	clusterStatus.Status = worstStatus(tStatus, mStatus)
+	check.checkBrokerMetadata(metadata, zkBrokers, &clusterStatus)
+	check.checkTopics(metadata, zkTopics, &clusterStatus)
 
 	return clusterStatus
 }
 
-func (check *HealthCheck) checkBrokerMetadata(metadata *proto.MetadataResp, zkBrokers []int32, cluster *ClusterStatus) (status string) {
-	status = green
-
+func (check *HealthCheck) checkBrokerMetadata(metadata *proto.MetadataResp, zkBrokers []int32, cluster *ClusterStatus) {
 	var brokersFromMeta []int32
 	for _, broker := range metadata.Brokers {
 		brokersFromMeta = append(brokersFromMeta, broker.NodeID)
@@ -27,28 +24,27 @@ func (check *HealthCheck) checkBrokerMetadata(metadata *proto.MetadataResp, zkBr
 	for _, broker := range brokersFromMeta {
 		if !contains(zkBrokers, broker) {
 			cluster.Metadata = append(cluster.Metadata, BrokerMetadata{broker, red, "Missing in ZooKeeper"})
-			status = red
+			cluster.Status = red
 		}
 	}
 
 	for _, broker := range zkBrokers {
 		if !contains(brokersFromMeta, broker) {
 			cluster.Metadata = append(cluster.Metadata, BrokerMetadata{broker, red, "Missing in metadata"})
-			status = red
+			cluster.Status = red
 		}
 	}
 
 	return
 }
 
-func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []ZkTopic, cluster *ClusterStatus) (status string) {
+func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []ZkTopic, cluster *ClusterStatus) {
 
 	zkTopicMap := make(map[string]ZkTopic)
 	for _, topic := range zkTopics {
 		zkTopicMap[topic.Name] = topic
 	}
 
-	status = green
 	for _, topic := range metadata.Topics {
 		zkTopic, ok := zkTopicMap[topic.Name]
 		topicStatus := TopicStatus{Topic: topic.Name, Status: green, Partitions: make(map[string]PartitionStatus)}
@@ -71,7 +67,7 @@ func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []Z
 
 		if topicStatus.Status != green {
 			cluster.Topics = append(cluster.Topics, topicStatus)
-			status = worstStatus(topicStatus.Status, status)
+			cluster.Status = worstStatus(topicStatus.Status, cluster.Status)
 		}
 	}
 

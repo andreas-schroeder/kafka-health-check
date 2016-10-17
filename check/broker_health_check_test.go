@@ -1,8 +1,9 @@
 package check
 
 import (
-	"github.com/golang/mock/gomock"
 	"testing"
+
+	"github.com/golang/mock/gomock"
 )
 
 func Test_checkBrokerHealth_WhenProducedMessageIsConsumed_ReturnsHealthy(t *testing.T) {
@@ -54,7 +55,7 @@ func Test_checkBrokerHealth_WhenProducedMessageIsConsumedAndFailsToReplicate_Ret
 	}
 }
 
-func Test_checkBrokerHealth_WhenProducedMessageIsConsumedButOutOfSync_ReturnsUnhealthy(t *testing.T) {
+func Test_checkBrokerHealth_WhenProducedMessageIsConsumedButOutOfSync_ReturnsHealthy(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

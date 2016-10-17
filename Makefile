@@ -12,8 +12,8 @@ deps:
 test: build
 	@go fmt . ./check
 	@go vet . ./check
-	@go test ./check
-	@go test -v -race ./check
+	@go test -v  ./check
+	@go test -race ./check
 
 compatibility: build
 	@go run compatibility/test.go -base-dir "./compatibility" -health-check "./kafka-health-check"
