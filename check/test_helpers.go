@@ -179,11 +179,8 @@ func healthyZkTopics() []ZkTopic {
 	return []ZkTopic{
 		{
 			Name: "some-topic",
-			Partitions: []ZkPartition{
-				{
-					ID:       2,
-					Replicas: []int32{2, 1},
-				},
+			Partitions: map[int32][]int32{
+				2: {2, 1},
 			},
 		},
 	}
@@ -320,6 +317,10 @@ func newZkTestCheck(ctrl *gomock.Controller) (check *HealthCheck, zookeeper *Moc
 	zookeeper = NewMockZkConnection(ctrl)
 	check.zookeeper = zookeeper
 	return
+}
+
+func (zookeeper *MockZkConnection) mockGet(path, data string) {
+	zookeeper.EXPECT().Get(path).Return([]byte(data), nil, nil)
 }
 
 func (zookeeper *MockZkConnection) mockTopicGet(name string) {

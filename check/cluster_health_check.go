@@ -53,15 +53,8 @@ func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []Z
 			topicStatus.ZooKeeper = "Missing ZooKeeper metadata"
 		}
 
-		zkPartitionMap := make(map[int32]ZkPartition)
-		if ok {
-			for _, partition := range zkTopic.Partitions {
-				zkPartitionMap[partition.ID] = partition
-			}
-		}
-
 		for _, partition := range topic.Partitions {
-			pStatus := checkPartition(&partition, zkPartitionMap, &topicStatus)
+			pStatus := checkPartition(&partition, &zkTopic, &topicStatus)
 			topicStatus.Status = worstStatus(topicStatus.Status, pStatus)
 		}
 
@@ -74,17 +67,15 @@ func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []Z
 	return
 }
 
-func checkPartition(partition *proto.MetadataRespPartition, zkPartitionMap map[int32]ZkPartition, topicStatus *TopicStatus) string {
+func checkPartition(partition *proto.MetadataRespPartition, zkTopic *ZkTopic, topicStatus *TopicStatus) string {
 	status := PartitionStatus{Status: green}
 
 	replicas := partition.Replicas
 
-	zkPartition, ok := zkPartitionMap[partition.ID]
+	replicas, ok := zkTopic.Partitions[partition.ID]
 	if !ok {
 		status.Status = red
 		status.ZooKeeper = "Missing ZooKeeper metadata"
-	} else {
-		replicas = zkPartition.Replicas
 	}
 
 	if len(partition.Isrs) < len(replicas) {

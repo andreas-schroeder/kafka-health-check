@@ -192,28 +192,18 @@ func (check *HealthCheck) createTopic(name string, forHealthCheck bool) (err err
 
 }
 
-func findPartition(ID int32, partitions []ZkPartition) (*ZkPartition, bool) {
-	for _, p := range partitions {
-		if p.ID == ID {
-			return &p, true
-		}
-	}
-
-	return nil, false
-}
-
 func maybeExpandReplicationTopic(zk ZkConnection, brokerID, partitionID int32, topicName, chroot string) error {
-	partitions, err := zkPartitions(zk, topicName, chroot)
+	topic := ZkTopic{Name: topicName}
+	err := zkPartitions(&topic, zk, topicName, chroot)
 	if err != nil {
 		return errors.Wrap(err, "Unable to determine if replication topic should be expanded")
 	}
 
-	partition, ok := findPartition(partitionID, partitions)
+	replicas, ok := topic.Partitions[partitionID]
 	if !ok {
 		return fmt.Errorf(`Cannot find partition with ID %d in topic "%s"`, partitionID, topicName)
 	}
 
-	replicas := partition.Replicas
 	if !contains(replicas, brokerID) {
 		log.Info("Expanding replication check topic to include broker ", brokerID)
 		replicas = append(replicas, brokerID)
@@ -296,18 +286,18 @@ func (check *HealthCheck) closeConnection(deleteTopicIfPresent bool) {
 }
 
 func (check *HealthCheck) deleteTopic(zkConn ZkConnection, chroot, name string, partitionID int32) error {
-	partitions, err := zkPartitions(zkConn, name, chroot)
+	topic := ZkTopic{Name: name}
+	err := zkPartitions(&topic, zkConn, name, chroot)
 	if err != nil {
 		return err
 	}
 
-	partition, ok := findPartition(partitionID, partitions)
+	replicas, ok := topic.Partitions[partitionID]
 	if !ok {
 		return fmt.Errorf(`Cannot find partition with ID %d in topic "%s"`, partitionID, name)
 	}
 
 	brokerID := int32(check.config.brokerID)
-	replicas := partition.Replicas
 	if len(replicas) > 1 {
 		log.Info("Shrinking replication check topic to exclude broker ", brokerID)
 		replicas = delAll(replicas, brokerID)
