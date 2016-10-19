@@ -45,29 +45,42 @@ func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []Z
 		zkTopicMap[topic.Name] = topic
 	}
 
+	metaTopicMap := make(map[string]proto.MetadataRespTopic)
+	for _, topic := range metadata.Topics {
+		metaTopicMap[topic.Name] = topic
+	}
+
+	for _, topic := range zkTopics {
+		if _, ok := metaTopicMap[topic.Name]; !ok {
+			status := TopicStatus{Topic: topic.Name, Status: red}
+			status.ZooKeeper = "Exists in ZooKeeper, missing in Kafka metadata"
+			cluster.Topics = append(cluster.Topics, status)
+			cluster.Status = red
+		}
+	}
+
 	for _, topic := range metadata.Topics {
 		zkTopic, ok := zkTopicMap[topic.Name]
-		topicStatus := TopicStatus{Topic: topic.Name, Status: green, Partitions: make(map[string]PartitionStatus)}
+		status := TopicStatus{Topic: topic.Name, Status: green, Partitions: make(map[string]PartitionStatus)}
 		if !ok {
-			topicStatus.Status = red
-			topicStatus.ZooKeeper = "Missing ZooKeeper metadata"
+			status.Status = red
+			status.ZooKeeper = "Missing ZooKeeper metadata"
 		}
 
 		for _, partition := range topic.Partitions {
-			pStatus := checkPartition(&partition, &zkTopic, &topicStatus)
-			topicStatus.Status = worstStatus(topicStatus.Status, pStatus)
+			checkPartition(&partition, &zkTopic, &status)
 		}
 
-		if topicStatus.Status != green {
-			cluster.Topics = append(cluster.Topics, topicStatus)
-			cluster.Status = worstStatus(topicStatus.Status, cluster.Status)
+		if status.Status != green {
+			cluster.Topics = append(cluster.Topics, status)
+			cluster.Status = worstStatus(cluster.Status, status.Status)
 		}
 	}
 
 	return
 }
 
-func checkPartition(partition *proto.MetadataRespPartition, zkTopic *ZkTopic, topicStatus *TopicStatus) string {
+func checkPartition(partition *proto.MetadataRespPartition, zkTopic *ZkTopic, topicStatus *TopicStatus) {
 	status := PartitionStatus{Status: green}
 
 	replicas := partition.Replicas
@@ -76,6 +89,13 @@ func checkPartition(partition *proto.MetadataRespPartition, zkTopic *ZkTopic, to
 	if !ok {
 		status.Status = red
 		status.ZooKeeper = "Missing ZooKeeper metadata"
+	}
+
+	for _, replica := range partition.Replicas {
+		if !contains(replicas, replica) {
+			status.Status = red
+			status.ZooKeeper = fmt.Sprintf("Replica %d Missing ZooKeeper metadata", replica)
+		}
 	}
 
 	if len(partition.Isrs) < len(replicas) {
@@ -92,9 +112,8 @@ func checkPartition(partition *proto.MetadataRespPartition, zkTopic *ZkTopic, to
 	if status.Status != green {
 		ID := fmt.Sprintf("%d", partition.ID)
 		topicStatus.Partitions[ID] = status
+		topicStatus.Status = worstStatus(topicStatus.Status, status.Status)
 	}
-
-	return status.Status
 }
 
 func worstStatus(s1 string, s2 string) string {

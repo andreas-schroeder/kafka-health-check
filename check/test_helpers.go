@@ -190,6 +190,10 @@ func healthyZkBrokers() []int32 {
 	return []int32{1, 2}
 }
 
+func missingZkBrokers() []int32 {
+	return []int32{2}
+}
+
 func underReplicatedMetadata() *proto.MetadataResp {
 	return &proto.MetadataResp{
 		CorrelationID: int32(1),
