@@ -46,17 +46,8 @@ func Test_checkClusterHealth_WhenSomeBrokerMissingInZK_ReportsRed(t *testing.T) 
 func Test_checkClusterHealth_WhenSomePartitionMissingInZK_ReportsRed(t *testing.T) {
 	check := newTestCheck()
 
-	zkTopics := []ZkTopic{
-		{
-			Name: "some-topic",
-			Partitions: map[int32][]int32{
-				3: {2, 1},
-			},
-		},
-	}
-
 	clusterStatus := check.checkClusterHealth(
-		healthyMetadata("some-topic"), zkTopics, healthyZkBrokers())
+		healthyMetadata("some-topic"), partitionMissingZkTopics(), healthyZkBrokers())
 
 	if clusterStatus.Status != red {
 		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus.Status, red)
@@ -66,17 +57,8 @@ func Test_checkClusterHealth_WhenSomePartitionMissingInZK_ReportsRed(t *testing.
 func Test_checkClusterHealth_WhenSomeReplicaMissingInZK_ReportsRed(t *testing.T) {
 	check := newTestCheck()
 
-	zkTopics := []ZkTopic{
-		{
-			Name: "some-topic",
-			Partitions: map[int32][]int32{
-				2: {1},
-			},
-		},
-	}
-
 	clusterStatus := check.checkClusterHealth(
-		healthyMetadata("some-topic"), zkTopics, healthyZkBrokers())
+		healthyMetadata("some-topic"), replicaMissingZkTopics(), healthyZkBrokers())
 
 	if clusterStatus.Status != red {
 		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus.Status, red)
@@ -86,10 +68,8 @@ func Test_checkClusterHealth_WhenSomeReplicaMissingInZK_ReportsRed(t *testing.T)
 func Test_checkClusterHealth_WhenSomeTopicMissingInZK_ReportsRed(t *testing.T) {
 	check := newTestCheck()
 
-	zkTopics := []ZkTopic{}
-
 	clusterStatus := check.checkClusterHealth(
-		healthyMetadata("some-topic"), zkTopics, healthyZkBrokers())
+		healthyMetadata("some-topic"), []ZkTopic{}, healthyZkBrokers())
 
 	if clusterStatus.Status != red {
 		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus.Status, red)
@@ -99,17 +79,8 @@ func Test_checkClusterHealth_WhenSomeTopicMissingInZK_ReportsRed(t *testing.T) {
 func Test_checkClusterHealth_WhenSomeTopicMissingInMetadata_ReportsRed(t *testing.T) {
 	check := newTestCheck()
 
-	zkTopics := []ZkTopic{
-		{
-			Name: "some-topic",
-			Partitions: map[int32][]int32{
-				3: {2, 1},
-			},
-		},
-	}
-
 	clusterStatus := check.checkClusterHealth(
-		healthyMetadata(), zkTopics, healthyZkBrokers())
+		healthyMetadata( /* no topic */ ), healthyZkTopics(), healthyZkBrokers())
 
 	if clusterStatus.Status != red {
 		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus.Status, red)

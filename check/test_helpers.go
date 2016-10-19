@@ -186,6 +186,26 @@ func healthyZkTopics() []ZkTopic {
 	}
 }
 
+func replicaMissingZkTopics() []ZkTopic {
+	return []ZkTopic{
+		{
+			Name: "some-topic",
+			Partitions: map[int32][]int32{
+				2: {1},
+			},
+		},
+	}
+}
+
+func partitionMissingZkTopics() []ZkTopic {
+	return []ZkTopic{
+		{
+			Name:       "some-topic",
+			Partitions: map[int32][]int32{},
+		},
+	}
+}
+
 func healthyZkBrokers() []int32 {
 	return []int32{1, 2}
 }
