@@ -115,7 +115,7 @@ Run `make` to build after running `make deps` to restore the dependencies using 
 ### Prerequisites
 
 * Make to run the [Makefile](Makefile)
-* [Go 1.6](https://golang.org/dl/) since it's written in Go
+* [Go 1.7](https://golang.org/dl/) since it's written in Go
 
 
 ## Notable Details on Health Check Behavior
