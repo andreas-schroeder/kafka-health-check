@@ -86,3 +86,24 @@ func Test_checkClusterHealth_WhenSomeTopicMissingInMetadata_ReportsRed(t *testin
 		t.Errorf("CheckHealth reported cluster status as %v, expected %s", clusterStatus.Status, red)
 	}
 }
+
+func Test_worstStatus_WhenGivenYellowGreen_ReturnsYellow(t *testing.T) {
+	status := worstStatus(yellow, green)
+	if status != yellow {
+		t.Errorf("worst status produced %s, expected %s", status, yellow)
+	}
+}
+
+func Test_worstStatus_WhenGivenYellowRed_ReturnsRed(t *testing.T) {
+	status := worstStatus(yellow, red)
+	if status != red {
+		t.Errorf("worst status produced %s, expected %s", status, red)
+	}
+}
+
+func Test_worstStatus_WhenGivenSomethingElse_ReturnsSecond(t *testing.T) {
+	status := worstStatus("something", "else")
+	if status != "else" {
+		t.Errorf("worst status produced %s, expected %s", status, "else")
+	}
+}
