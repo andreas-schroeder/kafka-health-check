@@ -14,5 +14,5 @@ install:
  - make deps
 
 script:
-  - make test
+  - make test-no-race
   - make compatibility
