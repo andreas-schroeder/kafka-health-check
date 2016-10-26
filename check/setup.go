@@ -169,7 +169,8 @@ func (check *HealthCheck) createTopic(name string, forHealthCheck bool) (err err
 	brokerID := int32(check.config.brokerID)
 
 	if !exists {
-		topicConfig := `{"version":1,"config":{"delete.retention.ms":"10000","cleanup.policy":"delete"}}`
+		topicConfig := `{"version":1,"config":{"delete.retention.ms":"10000",` +
+			`"cleanup.policy":"delete","compression.type":"uncompressed"}}`
 		log.Infof(`creating topic "%s" configuration node`, name)
 
 		if err = createZkNode(zkConn, topicPath, topicConfig, forHealthCheck); err != nil {
