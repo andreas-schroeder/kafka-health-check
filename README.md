@@ -121,7 +121,6 @@ Run `make` to build after running `make deps` to restore the dependencies using 
 ## Notable Details on Health Check Behavior
 
 * When first started, the check tries to find the Kafka broker to check in the cluster metadata. Then, it tries to
-* When first started, the check tries to find the Kafka broker to check in the cluster metadata. Then, it tries to
   find the health check topic, and creates it if missing by communicating directly with ZooKeeper(configuration:
   10 seconds message lifetime, one single partition assigned to the broker to check).
   This behavior can be disabled by using `-no-topic-creation`.
