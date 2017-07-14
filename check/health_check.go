@@ -31,6 +31,7 @@ type HealthCheckConfig struct {
 	topicName                   string
 	replicationTopicName        string
 	replicationFailureThreshold uint
+	brokerHost                  string
 	brokerID                    uint
 	brokerPort                  uint
 	zookeeperConnect            string
