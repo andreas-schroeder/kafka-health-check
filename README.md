@@ -17,6 +17,8 @@ Health checker for Kafka brokers and clusters that operates by checking whether:
 
 ```
 kafka-health-check usage:
+  -broker-host string
+	ip address or hostname of broker host
   -broker-id uint
     	id of the Kafka broker to health check (default 0)
   -broker-port uint
@@ -42,7 +44,7 @@ kafka-health-check usage:
 Broker health can be queried at `/`:
 
 ```
-$ curl -s localhost:8000/
+$ curl -s <broker-host>:8000/
 {"status":"sync"}
 ```
 
@@ -58,7 +60,7 @@ Return codes and status values are:
 The returned json contains details about replicas the broker is lagging behind:
 
 ```
-$ curl -s localhost:8000/
+$ curl -s <broker-host>:8000/
 {"status":"imok","out-of-sync":[{"topic":"mytopic","partition":0}],"replication-failures":1}
 ```
 
@@ -67,7 +69,7 @@ $ curl -s localhost:8000/
 Cluster health can be queried at `/cluster`:
 
 ```
-$ curl -s localhost:8000/cluster
+$ curl -s <broker-host>:8000/cluster
 {"status":"green"}
 ```
 
@@ -79,7 +81,7 @@ Return codes and status values are:
 The returned json contains details about metadata status and partition replication:
 
 ```
-$ curl -s localhost:8000/cluster
+$ curl -s <broker-host>:8000/cluster
 {"status":"yellow","topics":[
   {"topic":"mytopic","Status":"yellow","partitions":{
       "2":{"status":"yellow","OSR":[3]},
