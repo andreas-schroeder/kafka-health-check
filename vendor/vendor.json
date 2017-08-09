@@ -55,7 +55,7 @@
 			"revision": "5250732bd2ed71d1e374212ebfc32760eca10c0a"
 		},
 		{
-			"checksumSHA1": "vu7njn8O4vhFtmgGWntwjA2NAbk=",
+			"checksumSHA1": "noiZtKqeCoHgwUw9PQz4O3w3CnU=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9",
 			"revisionTime": "2016-09-14T20:33:16Z"
