@@ -5,9 +5,9 @@ install:
 	@go install .
 
 deps:
-	@go get -u github.com/kardianos/govendor
+	@go get -u -v github.com/kardianos/govendor
 	@govendor sync
-	cd compatibility; govendor sync
+	@cd compatibility; govendor sync
 
 test: build
 	@go fmt . ./check
