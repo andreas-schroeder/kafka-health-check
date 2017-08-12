@@ -100,6 +100,11 @@ The fields for additional info and structures are:
 
 Tested with the following Kafka versions:
 
+* 0.11.0.0
+* 0.10.2.1
+* 0.10.2.0
+* 0.10.1.1
+* 0.10.1.0
 * 0.10.0.1
 * 0.10.0.0
 * 0.9.0.1
@@ -108,7 +113,7 @@ Tested with the following Kafka versions:
 Kafka 0.8 is not supported.
 
 see the [compatibility spec](./compatibility/spec.yaml) for the full list of executed compatibility checks.
-To execute the compatibility checks, run `make compatibility`. Running the checks require [Docker](https://www.docker.com/).
+To execute the compatibility checks, run `make compatibility`. Running the checks requires [Docker](https://www.docker.com/).
 
 ## Building
 
