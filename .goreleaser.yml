@@ -1,6 +1,6 @@
 builds:
   - main: main.go
-    binary: kafha-health-check
+    binary: kafka-health-check
     goos:
       - darwin
       - linux
