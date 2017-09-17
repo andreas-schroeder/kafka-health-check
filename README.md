@@ -13,6 +13,14 @@ Health checker for Kafka brokers and clusters that operates by checking whether:
 ## Status
 [![Build Status](https://travis-ci.org/andreas-schroeder/kafka-health-check.svg?branch=master)](https://travis-ci.org/andreas-schroeder/kafka-health-check)
 
+Release version is [0.0.1](https://github.com/andreas-schroeder/kafka-health-check/releases/tag/v0.0.1)
+
+Available binaries:
+* [Linux](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_linux_amd64.tar.gz)
+* [macOS](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_darwin_amd64.tar.gz)
+* [FreeBSD](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_linux_amd64.tar.gz)
+
+
 ## Usage
 
 ```
