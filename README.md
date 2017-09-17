@@ -15,10 +15,32 @@ Health checker for Kafka brokers and clusters that operates by checking whether:
 
 Release version is [0.0.1](https://github.com/andreas-schroeder/kafka-health-check/releases/tag/v0.0.1)
 
-Available binaries:
-* [Linux](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_linux_amd64.tar.gz)
-* [macOS](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_darwin_amd64.tar.gz)
-* [FreeBSD](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_linux_amd64.tar.gz)
+Compiled binaries are available for
+[Linux](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_linux_amd64.tar.gz),
+[macOS](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_darwin_amd64.tar.gz), and
+[FreeBSD](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_linux_amd64.tar.gz).
+
+## Use Cases
+
+_Submit a pull request to have your use case listed here!_
+
+**Self-healing cluster**
+
+At AutoScout24, in order to reduce operational
+workload, we use kafka-health-check to automatically restart broker nodes as
+they become unhealthy.
+
+**In-place rolling updates**
+
+At AutoScout24, to keep the OS up to date of our clusters running on AWS, we
+perform regular in-place rolling updates. As we run immutable servers, we
+terminate each broker and replace them with fresh EC2 instances (keeping the
+previous broker ids). In order not to jeopardy the cluster stability when
+terminating brokers, we verify that the cluster is healthy before taking one
+broker offline.
+Similarly, we wait for the broker coming back online to fully catch up before
+proceeding with the next broker. To achieve this, we use the cluster health
+information provided by kafka-health-check.
 
 
 ## Usage
