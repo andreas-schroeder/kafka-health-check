@@ -18,7 +18,7 @@ Release version is [0.0.1](https://github.com/andreas-schroeder/kafka-health-che
 Compiled binaries are available for
 [Linux](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_linux_amd64.tar.gz),
 [macOS](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_darwin_amd64.tar.gz), and
-[FreeBSD](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_linux_amd64.tar.gz).
+[FreeBSD](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.1/kafka-health-check_0.0.1_freebsd_amd64.tar.gz).
 
 ## Use Cases
 
@@ -41,7 +41,6 @@ broker offline.
 Similarly, we wait for the broker coming back online to fully catch up before
 proceeding with the next broker. To achieve this, we use the cluster health
 information provided by kafka-health-check.
-
 
 ## Usage
 
@@ -130,6 +129,7 @@ The fields for additional info and structures are:
 
 Tested with the following Kafka versions:
 
+* 0.11.0.1
 * 0.11.0.0
 * 0.10.2.1
 * 0.10.2.0
