@@ -46,34 +46,34 @@ information provided by kafka-health-check.
 
 ```
 kafka-health-check usage:
-  -broker-host string
-	ip address or hostname of broker host
+  -broker-hosts string
+  ip address or hostname of broker hosts, comma separated (e.g. broker1,broker2) without ports
   -broker-id uint
-    	id of the Kafka broker to health check (default 0)
+      id of the Kafka broker to health check (default 0)
   -broker-port uint
-    	Kafka broker port (default 9092)
+      Kafka broker port (default 9092). This port will be used for all brokers
   -check-interval duration
-    	how frequently to perform health checks (default 10s)
+      how frequently to perform health checks (default 10s)
   -no-topic-creation
-    	disable automatic topic creation and deletion
+      disable automatic topic creation and deletion
   -replication-failures-count uint
-    	number of replication failures before broker is reported unhealthy (default 5)
+      number of replication failures before broker is reported unhealthy (default 5)
   -replication-topic string
-    	name of the topic to use for replication checks - use one per cluster, defaults to broker-replication-check
+      name of the topic to use for replication checks - use one per cluster, defaults to broker-replication-check
   -server-port uint
-    	port to open for http health status queries (default 8000)
+      port to open for http health status queries (default 8000)
   -topic string
-    	name of the topic to use - use one per broker, defaults to broker-<id>-health-check
+      name of the topic to use - use one per broker, defaults to broker-<id>-health-check. In case of multiple brokers provide list of topics separated by comma 
   -zookeeper string
-    	ZooKeeper connect string (e.g. node1:2181,node2:2181,.../chroot)
+      ZooKeeper connect string (e.g. node1:2181,node2:2181,.../chroot)
 ```
 
 ## Broker Health
 
-Broker health can be queried at `/`:
+Broker health can be queried at `/{brokerid}`: brokerids are assinged in sequence
 
 ```
-$ curl -s <broker-host>:8000/
+$ curl -s <broker-host>:8000/0
 {"status":"sync"}
 ```
 
@@ -89,7 +89,7 @@ Return codes and status values are:
 The returned json contains details about replicas the broker is lagging behind:
 
 ```
-$ curl -s <broker-host>:8000/
+$ curl -s <broker-host>:8000/0
 {"status":"imok","out-of-sync":[{"topic":"mytopic","partition":0}],"replication-failures":1}
 ```
 
