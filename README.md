@@ -129,6 +129,7 @@ The fields for additional info and structures are:
 
 Tested with the following Kafka versions:
 
+* 1.1.0
 * 1.0.0
 * 0.11.0.2
 * 0.11.0.1
