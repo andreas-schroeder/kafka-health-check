@@ -4,9 +4,9 @@ import (
 	"math/rand"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/optiopay/kafka"
 	"github.com/optiopay/kafka/proto"
+	log "github.com/sirupsen/logrus"
 )
 
 // sends one message to the broker partition, wait for it to appear on the consumer.

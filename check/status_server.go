@@ -7,7 +7,7 @@ import (
 	"net"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // ServeHealth answers http queries for broker and cluster health.

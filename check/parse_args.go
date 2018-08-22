@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"time"
 
-	logr "github.com/Sirupsen/logrus"
+	logr "github.com/sirupsen/logrus"
 )
 
 // ParseCommandLineArguments parses the command line arguments.
