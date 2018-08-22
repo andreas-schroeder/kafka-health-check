@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/optiopay/kafka"
+	log "github.com/sirupsen/logrus"
 )
 
 // HealthCheck holds all data required for health checking.

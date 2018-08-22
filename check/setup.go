@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/optiopay/kafka/proto"
 	"github.com/pkg/errors"
 	"github.com/samuel/go-zookeeper/zk"
+	log "github.com/sirupsen/logrus"
 )
 
 func (check *HealthCheck) connect(firstConnection bool, stop <-chan struct{}) error {
