@@ -11,6 +11,7 @@ import (
 
 // sends one message to the broker partition, wait for it to appear on the consumer.
 func (check *HealthCheck) checkBrokerHealth(metadata *proto.MetadataResp) BrokerStatus {
+
 	status := unhealthy
 	payload := randomBytes(check.config.MessageLength, check.randSrc)
 	message := &proto.Message{Value: []byte(payload)}
@@ -36,6 +37,9 @@ func (check *HealthCheck) waitForMessage(message *proto.Message) string {
 	deadline := time.Now().Add(check.config.CheckTimeout)
 	for time.Now().Before(deadline) {
 		receivedMessage, err := check.consumer.Consume()
+
+
+
 		if err != nil {
 			if err != kafka.ErrNoData {
 				log.Println("consumer failure - broker unhealthy:", err)
@@ -46,10 +50,15 @@ func (check *HealthCheck) waitForMessage(message *proto.Message) string {
 			}
 			continue
 		}
+		log.Println("receivedMessage .... " + string(receivedMessage.Value))
+		log.Println("producedMessage " + string(message.Value))
+
 		if string(receivedMessage.Value) == string(message.Value) {
+			log.Println("returning healthy....")
 			return healthy
 		}
 	}
+	log.Println("returning UNhealthy....")
 	return unhealthy
 }
 

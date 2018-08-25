@@ -53,14 +53,22 @@ func New(config HealthCheckConfig) *HealthCheck {
 	}
 }
 
-// CheckHealth checks broker and cluster health.
-func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdates chan<- Update, stop <-chan struct{}) {
+func (check *HealthCheck) InitializeConnection(stop <-chan struct{}) bool{
 	manageTopic := !check.config.NoTopicCreation
 	err := check.connect(manageTopic, stop)
 	if err != nil {
-		return
+		return false
+		
 	}
-	defer check.closeConnection(manageTopic)
+	log.Println("Connected to broker ... ")
+	return true
+	
+}
+
+// CheckHealth checks broker and cluster health.
+func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdates chan<- Update, stop <-chan struct{}) {
+
+	
 
 	reportUnhealthy := func(err error) {
 		log.Println("metadata could not be retrieved, assuming broker unhealthy:", err)
@@ -70,42 +78,31 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 
 	check.randSrc = rand.NewSource(time.Now().UnixNano())
 
-	log.Info("starting health check loop")
-	ticker := time.NewTicker(check.config.CheckInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			metadata, err := check.broker.Metadata()
-			if err != nil {
-				reportUnhealthy(err)
-				continue
-			}
+		
+	metadata, err := check.broker.Metadata()
+	if err != nil {
+		reportUnhealthy(err)
+	}
 
-			zkTopics, zkBrokers, err := check.getZooKeeperMetadata()
-			if err != nil {
-				reportUnhealthy(err)
-				continue
-			}
+	zkTopics, zkBrokers, err := check.getZooKeeperMetadata()
+	if err != nil {
+		reportUnhealthy(err)
+	}
 
-			brokerStatus := check.checkBrokerHealth(metadata)
-			brokerUpdates <- newUpdate(brokerStatus, "broker")
+	brokerStatus := check.checkBrokerHealth(metadata)
+	brokerUpdates <- newUpdate(brokerStatus, "broker")
 
-			if brokerStatus.Status == unhealthy {
-				clusterUpdates <- Update{red, simpleStatus(red)}
-				log.Info("closing connection and reconnecting")
-				if err := check.reconnect(stop); err != nil {
-					log.Info("error while reconnecting:", err)
-					return
-				}
-				log.Info("reconnected")
-			} else {
-				clusterStatus := check.checkClusterHealth(metadata, zkTopics, zkBrokers)
-				clusterUpdates <- newUpdate(clusterStatus, "cluster")
-			}
-		case <-stop:
+	if brokerStatus.Status == unhealthy {
+		clusterUpdates <- Update{red, simpleStatus(red)}
+		log.Info("closing connection and reconnecting")
+		if err := check.reconnect(stop); err != nil {
+			log.Info("error while reconnecting:", err)
 			return
 		}
+		log.Info("reconnected")
+	}else {
+		clusterStatus := check.checkClusterHealth(metadata, zkTopics, zkBrokers)
+		clusterUpdates <- newUpdate(clusterStatus, "cluster")
 	}
 }
 
