@@ -21,7 +21,7 @@ func (check *HealthCheck) checkBrokerHealth(metadata *proto.MetadataResp) Broker
 		status = check.waitForMessage(message)
 	}
 
-	brokerStatus := BrokerStatus{Status: status}
+	brokerStatus := BrokerStatus{ID: int32(check.config.brokerID), Status: status}
 	if status == healthy {
 		check.producer.Produce(check.config.replicationTopicName, check.replicationPartitionID, message)
 		check.brokerInSync(&brokerStatus, metadata)

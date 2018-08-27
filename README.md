@@ -45,11 +45,11 @@ information provided by kafka-health-check.
 ## Usage
 
 ```
-kafka-health-check usage:
+Usage of kafka-health-check:
   -broker-host string
-	ip address or hostname of broker host
+    	ip address or hostname of broker host (default "localhost")
   -broker-id uint
-    	id of the Kafka broker to health check (default 0)
+    	id of the Kafka broker to health check
   -broker-port uint
     	Kafka broker port (default 9092)
   -check-interval duration
@@ -74,7 +74,10 @@ Broker health can be queried at `/`:
 
 ```
 $ curl -s <broker-host>:8000/
-{"status":"sync"}
+{
+    "broker": 1,
+    "status": "sync"
+}
 ```
 
 Return codes and status values are:
@@ -90,7 +93,17 @@ The returned json contains details about replicas the broker is lagging behind:
 
 ```
 $ curl -s <broker-host>:8000/
-{"status":"imok","out-of-sync":[{"topic":"mytopic","partition":0}],"replication-failures":1}
+{
+    "broker": 3,
+    "status": "imok",
+    "out-of-sync": [
+        {
+            "topic": "mytopic",
+            "partition": 0
+        }
+    ],
+    "replication-failures": 1
+}
 ```
 
 ## Cluster Health
@@ -99,7 +112,9 @@ Cluster health can be queried at `/cluster`:
 
 ```
 $ curl -s <broker-host>:8000/cluster
-{"status":"green"}
+{
+    "status": "green"
+}
 ```
 
 Return codes and status values are:
@@ -111,16 +126,33 @@ The returned json contains details about metadata status and partition replicati
 
 ```
 $ curl -s <broker-host>:8000/cluster
-{"status":"yellow","topics":[
-  {"topic":"mytopic","Status":"yellow","partitions":{
-      "2":{"status":"yellow","OSR":[3]},
-      "1":{"status":"yellow","OSR":[3]}
-  }}
-]}
+{
+    "status": "yellow",
+    "topics": [
+        {
+            "topic": "mytopic",
+            "status": "yellow",
+            "partitions": {
+                "1": {
+                    "status": "yellow",
+                    "OSR": [
+                        3
+                    ]
+                },
+                "2": {
+                    "status": "yellow",
+                    "OSR": [
+                        3
+                    ]
+                }
+            }
+        }
+    ]
+}
 ```
 
 The fields for additional info and structures are:
-* `topics` for topic replication status: `[{"topic":"mytopic","Status":"yellow","partitions":{"2":{"status":"yellow","OSR":[3]}}}]`
+* `topics` for topic replication status: `[{"topic":"mytopic","status":"yellow","partitions":{"2":{"status":"yellow","OSR":[3]}}}]`
    In this data, `OSR` means out-of-sync replica and contains the list of all brokers that are not in the ISR.
 * `metadata` for inconsistencies between ZooKeeper and Kafka metadata: `[{"broker":3,"status":"red","problem":"Missing in ZooKeeper"}]`
 * `zookeeper` for problems with ZooKeeper connection or data, contains a single string: `"Fetching brokers failed: ..."`

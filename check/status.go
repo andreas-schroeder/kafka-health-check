@@ -21,6 +21,7 @@ type StatusReport interface {
 }
 
 type BrokerStatus struct {
+	ID                  int32               `json:"broker"`
 	Status              string              `json:"status"`
 	OutOfSync           []ReplicationStatus `json:"out-of-sync,omitempty"`
 	ReplicationFailures uint                `json:"replication-failures,omitempty"`
