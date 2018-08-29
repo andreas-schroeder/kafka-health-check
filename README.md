@@ -13,12 +13,12 @@ Health checker for Kafka brokers and clusters that operates by checking whether:
 ## Status
 [![Build Status](https://travis-ci.org/andreas-schroeder/kafka-health-check.svg?branch=master)](https://travis-ci.org/andreas-schroeder/kafka-health-check)
 
-Release version is [0.0.2](https://github.com/andreas-schroeder/kafka-health-check/releases/tag/v0.0.2)
+Release version is [0.1.0](https://github.com/andreas-schroeder/kafka-health-check/releases/tag/v0.1.0)
 
 Compiled binaries are available for
-[Linux](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.2/kafka-health-check_0.0.2_linux_amd64.tar.gz),
-[macOS](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.2/kafka-health-check_0.0.2_darwin_amd64.tar.gz), and
-[FreeBSD](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.0.2/kafka-health-check_0.0.2_freebsd_amd64.tar.gz).
+[Linux](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.1.0/kafka-health-check_0.1.0_linux_amd64.tar.gz),
+[macOS](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.1.0/kafka-health-check_0.1.0_darwin_amd64.tar.gz), and
+[FreeBSD](https://github.com/andreas-schroeder/kafka-health-check/releases/download/v0.1.0/kafka-health-check_0.1.0_freebsd_amd64.tar.gz).
 
 ## Use Cases
 
