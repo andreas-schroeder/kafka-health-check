@@ -32,7 +32,13 @@ func (check *HealthCheck) tryConnectOnce(createBrokerTopic, createReplicationTop
 	pauseTime := check.config.retryInterval
 	// connect to kafka cluster
 	connectString := []string{fmt.Sprintf("%s:%d", check.config.brokerHost, check.config.brokerPort)}
-	err := check.broker.Dial(connectString, check.brokerConfig())
+
+	brokerConfig, err := check.brokerConfig()
+	if err != nil {
+
+	}
+
+	err = check.broker.Dial(connectString, brokerConfig)
 	if err != nil {
 		log.Printf("unable to connect to broker, retrying in %s (%s)", pauseTime.String(), err)
 		return err

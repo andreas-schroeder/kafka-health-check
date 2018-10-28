@@ -1,6 +1,7 @@
 package check
 
 import (
+	"io/ioutil"
 	"math/rand"
 	"time"
 
@@ -34,6 +35,9 @@ type HealthCheckConfig struct {
 	brokerHost                  string
 	brokerID                    uint
 	brokerPort                  uint
+	brokerCACertPath            string
+	brokerClientCertPath        string
+	brokerClientKeyPath         string
 	zookeeperConnect            string
 	statusServerPort            uint
 }
@@ -112,17 +116,42 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 func newUpdate(report StatusReport, name string) Update {
 	data, err := report.Json()
 	if err != nil {
-		log.Warn("Error while marshaling %s status: %s", name, err.Error())
+		log.Warnf("Error while marshaling %s status: %s", name, err.Error())
 		data = simpleStatus(report.Summary())
 	}
 	return Update{report.Summary(), data}
 }
 
-func (check *HealthCheck) brokerConfig() kafka.BrokerConf {
+func (check *HealthCheck) brokerConfig() (kafka.BrokerConf, error) {
 	config := kafka.NewBrokerConf("health-check-client")
 	config.DialRetryLimit = 1
 	config.DialRetryWait = check.config.CheckTimeout
-	return config
+
+	if check.config.brokerCACertPath != "" &&
+		check.config.brokerClientCertPath != "" &&
+		check.config.brokerClientKeyPath != "" {
+
+		ca, err := ioutil.ReadFile(check.config.brokerCACertPath)
+		if err != nil {
+			return kafka.BrokerConf{}, err
+		}
+
+		cert, err := ioutil.ReadFile(check.config.brokerClientCertPath)
+		if err != nil {
+			return kafka.BrokerConf{}, err
+		}
+
+		key, err := ioutil.ReadFile(check.config.brokerClientKeyPath)
+		if err != nil {
+			return kafka.BrokerConf{}, err
+		}
+
+		config.TLSCa = ca
+		config.TLSCert = cert
+		config.TLSKey = key
+	}
+
+	return config, nil
 }
 
 func (check *HealthCheck) consumerConfig() kafka.ConsumerConf {
