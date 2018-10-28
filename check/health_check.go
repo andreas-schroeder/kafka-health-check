@@ -116,7 +116,7 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 func newUpdate(report StatusReport, name string) Update {
 	data, err := report.Json()
 	if err != nil {
-		log.Warn("Error while marshaling %s status: %s", name, err.Error())
+		log.Warnf("Error while marshaling %s status: %s", name, err.Error())
 		data = simpleStatus(report.Summary())
 	}
 	return Update{report.Summary(), data}
