@@ -179,3 +179,45 @@ func (_m *MockZkConnection) Get(path string) ([]byte, *zk.Stat, error) {
 func (_mr *_MockZkConnectionRecorder) Get(arg0 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Get", arg0)
 }
+
+func (_m *MockZkConnection) NewLock(path string, acl []zk.ACL) (ZkLock, error) {
+	ret := _m.ctrl.Call(_m, "NewLock", path, acl)
+	ret0, _ := ret[0].(ZkLock)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockZkConnectionRecorder) NewLock(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "NewLock", arg0, arg1)
+}
+
+// Mock of ZkLock interface
+type MockZkLock struct {
+	ctrl     *gomock.Controller
+	recorder *_MockZkLockRecorder
+}
+
+// Recorder for MockZkLock (not exported)
+type _MockZkLockRecorder struct {
+	mock *MockZkLock
+}
+
+func NewMockZkLock(ctrl *gomock.Controller) *MockZkLock {
+	mock := &MockZkLock{ctrl: ctrl}
+	mock.recorder = &_MockZkLockRecorder{mock}
+	return mock
+}
+
+func (_m *MockZkLock) EXPECT() *_MockZkLockRecorder {
+	return _m.recorder
+}
+
+func (_m *MockZkLock) Unlock() error {
+	ret := _m.ctrl.Call(_m, "Unlock")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockZkLockRecorder) Unlock() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Unlock")
+}
