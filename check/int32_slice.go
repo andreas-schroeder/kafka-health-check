@@ -25,7 +25,7 @@ func delAt(a []int32, i int) []int32 {
 }
 
 func delAll(a []int32, el int32) []int32 {
-	for i, ok := indexOf(a, el); ok; {
+	for i, ok := indexOf(a, el); ok; i, ok = indexOf(a, el) {
 		a = delAt(a, i)
 	}
 	return a
