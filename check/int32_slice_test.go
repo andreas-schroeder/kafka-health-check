@@ -19,30 +19,6 @@ func Test_Contains_ReturnsTrue(t *testing.T) {
 	}
 }
 
-// indexOf() tests
-
-func Test_IndexOf_ValueExists(t *testing.T) {
-	i, result := indexOf([]int32{1, 2, 3}, 2)
-	if i != 1 || result != true {
-		t.Error()
-	}
-}
-
-func Test_IndexOf_ValueDoesntExists(t *testing.T) {
-	i, result := indexOf([]int32{1, 2, 3}, 4)
-	if i != -1 || result != false {
-		t.Error()
-	}
-}
-
-// delAt() tests
-
-func Test_DelAt_ValueExists(t *testing.T) {
-	if !reflect.DeepEqual(delAt([]int32{1, 2, 3}, 1), []int32{1, 3}) {
-		t.Error()
-	}
-}
-
 // delAll() tests
 
 func Test_DelAll_Single(t *testing.T) {
