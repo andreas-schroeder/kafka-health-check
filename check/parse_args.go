@@ -39,7 +39,7 @@ func (check *HealthCheck) ParseCommandLineArguments() {
 		}
 		if check.config.replicationTopicName == "" {
 			check.config.replicationTopicName = "broker-replication-check"
-			logr.Println("using topic", check.config.topicName, "for broker", check.config.brokerID, "replication check")
+			logr.Println("using topic", check.config.replicationTopicName, "for broker", check.config.brokerID, "replication check")
 		}
 		check.config.retryInterval = check.config.CheckInterval / 2
 	}

@@ -343,22 +343,24 @@ func newZkTestCheck(ctrl *gomock.Controller) (check *HealthCheck, zookeeper *Moc
 	return
 }
 
-func (zookeeper *MockZkConnection) mockGet(path, data string) {
-	zookeeper.EXPECT().Get(path).Return([]byte(data), nil, nil)
+func (zookeeper *MockZkConnection) mockGet(path, data string) *gomock.Call {
+	return zookeeper.EXPECT().Get(path).Return([]byte(data), nil, nil)
 }
 
-func (zookeeper *MockZkConnection) mockTopicGet(name string) {
-	zookeeper.EXPECT().Get("/brokers/topics/"+name).Return([]byte(`{"version":1,"partitions":{"0":[1]}}`), nil, nil)
+func (zookeeper *MockZkConnection) mockTopicGet(name string) *gomock.Call {
+	return zookeeper.EXPECT().Get("/brokers/topics/"+name).Return([]byte(`{"version":1,"partitions":{"0":[1]}}`), nil, nil)
 }
 
-func (zookeeper *MockZkConnection) mockSuccessfulPathCreation(path string) {
-	zookeeper.EXPECT().Exists(path).Return(false, nil, nil)
-	zookeeper.EXPECT().Create(path, gomock.Any(), int32(0), gomock.Any()).Return(path, nil)
+func (zookeeper *MockZkConnection) mockSuccessfulPathCreation(path string) *gomock.Call {
+	before := zookeeper.EXPECT().Exists(path).Return(false, nil, nil)
+	zookeeper.EXPECT().Create(path, gomock.Any(), int32(0), gomock.Any()).Return(path, nil).After(before)
+	return before
 }
 
-func (zookeeper *MockZkConnection) mockFailingPathCreation(path string) {
-	zookeeper.EXPECT().Exists(path).Return(false, nil, nil)
-	zookeeper.EXPECT().Create(path, gomock.Any(), int32(0), gomock.Any()).Return("", errors.New("Test error"))
+func (zookeeper *MockZkConnection) mockFailingPathCreation(path string) *gomock.Call {
+	before := zookeeper.EXPECT().Exists(path).Return(false, nil, nil)
+	zookeeper.EXPECT().Create(path, gomock.Any(), int32(0), gomock.Any()).Return("", errors.New("Test error")).After(before)
+	return before
 }
 
 func (zk *MockZkConnection) mockHealthyMetadata(topics ...string) {
@@ -369,4 +371,11 @@ func (zk *MockZkConnection) mockHealthyMetadata(topics ...string) {
 		zk.EXPECT().Get("/brokers/topics/"+topic).Return([]byte(`{"version":1,"partitions":{"2":[1, 2]}}`), nil, nil)
 	}
 	zk.EXPECT().Close()
+}
+
+func (zookeeper *MockZkConnection) mockLock(path string, ctrl *gomock.Controller) *gomock.Call {
+	lock := NewMockZkLock(ctrl)
+	before := zookeeper.EXPECT().NewLock(path, gomock.Any()).Return(lock, nil)
+	lock.EXPECT().Unlock().After(before)
+	return before
 }

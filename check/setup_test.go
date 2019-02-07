@@ -130,6 +130,7 @@ func Test_findPartitionID_WhenTopicDoesNotExistAndMayCreateIt_CreatesTopic(t *te
 	metadata := metadataWithoutTopic()
 
 	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil)
+	zookeeper.mockLock("/kafka-health-check", ctrl)
 	zookeeper.mockSuccessfulPathCreation("/config/topics/health-check")
 	zookeeper.mockSuccessfulPathCreation("/brokers/topics/health-check")
 	zookeeper.EXPECT().Close()
@@ -167,6 +168,7 @@ func Test_createHealthCheckTopic_WhenTopicCreationsSuccessful_ReturnsNoError(t *
 	check.zookeeper = zookeeper
 
 	zookeeper.EXPECT().Connect([]string{"localhost:2181", "localhost:2182"}, gomock.Any()).Return(nil, nil)
+	zookeeper.mockLock("/kafka-health-check", ctrl)
 	zookeeper.mockSuccessfulPathCreation("/config/topics/health-check")
 	zookeeper.mockSuccessfulPathCreation("/brokers/topics/health-check")
 	zookeeper.EXPECT().Close()
@@ -220,6 +222,7 @@ func Test_createTopic_WhenCreatingTopicConfigFails_ReturnsError(t *testing.T) {
 
 	check, zookeeper := newZkTestCheck(ctrl)
 	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil)
+	zookeeper.mockLock("/kafka-health-check", ctrl)
 	zookeeper.mockFailingPathCreation("/config/topics/health-check")
 	zookeeper.EXPECT().Close()
 
@@ -236,6 +239,7 @@ func Test_createTopic_WhenCreatingTopicPartitionsFails_ReturnsError(t *testing.T
 
 	check, zookeeper := newZkTestCheck(ctrl)
 	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil)
+	zookeeper.mockLock("/kafka-health-check", ctrl)
 	zookeeper.mockSuccessfulPathCreation("/config/topics/health-check")
 	zookeeper.mockFailingPathCreation("/brokers/topics/health-check")
 	zookeeper.EXPECT().Close()
@@ -252,9 +256,13 @@ func Test_deleteHealthCheckTopic_WhenDeleteSucceeds_ReturnsNoError(t *testing.T)
 	defer ctrl.Finish()
 
 	check, zookeeper := newZkTestCheck(ctrl)
-	zookeeper.mockTopicGet("health-check")
-	zookeeper.mockSuccessfulPathCreation("/admin/delete_topics/health-check")
-	zookeeper.EXPECT().Exists("/admin/delete_topics/health-check").Return(true, nil, nil).Return(false, nil, nil)
+	gomock.InOrder(
+		zookeeper.mockLock("/kafka-health-check", ctrl),
+		zookeeper.EXPECT().Exists("/admin/reassign_partitions").Return(false, nil, nil),
+		zookeeper.mockTopicGet("health-check"),
+		zookeeper.mockSuccessfulPathCreation("/admin/delete_topics/health-check"),
+		zookeeper.EXPECT().Exists("/admin/delete_topics/health-check").Return(true, nil, nil).Return(false, nil, nil),
+	)
 
 	err := check.deleteTopic(zookeeper, "", "health-check", 0)
 
@@ -268,6 +276,8 @@ func Test_deleteTopic_WhenCreateDeleteNodeFails_ReturnsError(t *testing.T) {
 	defer ctrl.Finish()
 
 	check, zookeeper := newZkTestCheck(ctrl)
+	zookeeper.mockLock("/kafka-health-check", ctrl)
+	zookeeper.EXPECT().Exists("/admin/reassign_partitions").Return(false, nil, nil)
 	zookeeper.mockTopicGet("health-check")
 	zookeeper.mockFailingPathCreation("/admin/delete_topics/health-check")
 
@@ -283,9 +293,13 @@ func Test_deleteTopic_WhenExistsFails_ReturnsError(t *testing.T) {
 	defer ctrl.Finish()
 
 	check, zookeeper := newZkTestCheck(ctrl)
-	zookeeper.mockTopicGet("health-check")
-	zookeeper.mockSuccessfulPathCreation("/admin/delete_topics/health-check")
-	zookeeper.EXPECT().Exists("/admin/delete_topics/health-check").Return(false, nil, errors.New("test error"))
+	gomock.InOrder(
+		zookeeper.mockLock("/kafka-health-check", ctrl),
+		zookeeper.EXPECT().Exists("/admin/reassign_partitions").Return(false, nil, nil),
+		zookeeper.mockTopicGet("health-check"),
+		zookeeper.mockSuccessfulPathCreation("/admin/delete_topics/health-check"),
+		zookeeper.EXPECT().Exists("/admin/delete_topics/health-check").Return(false, nil, errors.New("test error")),
+	)
 
 	err := check.deleteTopic(zookeeper, "", "health-check", 0)
 

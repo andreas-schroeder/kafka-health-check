@@ -105,7 +105,7 @@ func (check *HealthCheck) findPartitionID(topicName string, forHealthCheck bool,
 	}
 
 	if ok {
-		return 0, fmt.Errorf(`Unable to find broker's parition in topic "%s" in metadata`, topicName)
+		return 0, fmt.Errorf(`Unable to find broker's partition in topic "%s" in metadata`, topicName)
 	} else {
 		return 0, fmt.Errorf(`Unable to find broker's topic "%s" in metadata`, topicName)
 	}
@@ -156,6 +156,13 @@ func (check *HealthCheck) createTopic(name string, forHealthCheck bool) (err err
 	}
 	defer zkConn.Close()
 
+	// Create a distributed lock to prevent race conditions when multiple health check instances expand replication
+	lock, err := zkConn.NewLock(chroot+"/kafka-health-check", zk.WorldACL(zk.PermAll))
+	if err != nil {
+		return errors.Wrap(err, "Unable to aquire ZK lock")
+	}
+	defer lock.Unlock()
+
 	topicPath := chroot + "/config/topics/" + name
 
 	exists := false
@@ -194,9 +201,11 @@ func (check *HealthCheck) createTopic(name string, forHealthCheck bool) (err err
 
 }
 
-func maybeExpandReplicationTopic(zk ZkConnection, brokerID, partitionID int32, topicName, chroot string) error {
+func maybeExpandReplicationTopic(zkConn ZkConnection, brokerID, partitionID int32, topicName, chroot string) error {
 	topic := ZkTopic{Name: topicName}
-	err := zkPartitions(&topic, zk, topicName, chroot)
+	// Wait so that we get up-to-date partition info
+	waitForPartitionReassignmentDone(zkConn, chroot)
+	err := zkPartitions(&topic, zkConn, topicName, chroot)
 	if err != nil {
 		return errors.Wrap(err, "Unable to determine if replication topic should be expanded")
 	}
@@ -210,23 +219,24 @@ func maybeExpandReplicationTopic(zk ZkConnection, brokerID, partitionID int32, t
 		log.Info("Expanding replication check topic to include broker ", brokerID)
 		replicas = append(replicas, brokerID)
 
-		return reassignPartition(zk, partitionID, replicas, topicName, chroot)
+		return reassignPartition(zkConn, partitionID, replicas, topicName, chroot)
 	}
 	return nil
 }
 
-func reassignPartition(zk ZkConnection, partitionID int32, replicas []int32, topicName, chroot string) (err error) {
-
+func waitForPartitionReassignmentDone(zk ZkConnection, chroot string) {
 	repeat := true
 	for repeat {
 		time.Sleep(1 * time.Second)
-		exists, _, rp_err := zk.Exists(chroot + "/admin/reassign_partitions")
-		if rp_err != nil {
+		exists, _, err := zk.Exists(chroot + "/admin/reassign_partitions")
+		if err != nil {
 			log.Warn("Error while checking if reassign_partitions node exists", err)
 		}
 		repeat = exists || err != nil
 	}
+}
 
+func reassignPartition(zk ZkConnection, partitionID int32, replicas []int32, topicName, chroot string) (err error) {
 	var replicasStr []string
 	for _, ID := range replicas {
 		replicasStr = append(replicasStr, fmt.Sprintf("%d", ID))
@@ -235,12 +245,14 @@ func reassignPartition(zk ZkConnection, partitionID int32, replicas []int32, top
 	reassign := fmt.Sprintf(`{"version":1,"partitions":[{"topic":"%s","partition":%d,"replicas":[%s]}]}`,
 		topicName, partitionID, strings.Join(replicasStr, ","))
 
-	repeat = true
+	// Start new partition reassignment process
+	repeat := true
 	for repeat {
 		log.Info("Creating reassign partition node")
 		err = createZkNode(zk, chroot+"/admin/reassign_partitions", reassign, true)
 		if err != nil {
-			log.Warn("Error while creating reassignment node", err)
+			log.Warn("Error while creating reassignment node, retrying in 1 second...", err)
+			time.Sleep(1 * time.Second)
 		}
 		repeat = err != nil
 	}
@@ -281,15 +293,30 @@ func (check *HealthCheck) closeConnection(deleteTopicIfPresent bool) {
 		}
 		defer zkConn.Close()
 
-		check.deleteTopic(zkConn, chroot, check.config.topicName, check.partitionID)
-		check.deleteTopic(zkConn, chroot, check.config.replicationTopicName, check.replicationPartitionID)
+		err = check.deleteTopic(zkConn, chroot, check.config.topicName, check.partitionID)
+		if err != nil {
+			log.Warnf(`Unable to delete topic "%s"`, check.config.topicName)
+		}
+		err = check.deleteTopic(zkConn, chroot, check.config.replicationTopicName, check.replicationPartitionID)
+		if err != nil {
+			log.Warnf(`Unable to delete topic "%s"`, check.config.replicationTopicName)
+		}
 	}
 	check.broker.Close()
 }
 
 func (check *HealthCheck) deleteTopic(zkConn ZkConnection, chroot, name string, partitionID int32) error {
+	// Create a distributed lock to prevent race conditions when multiple health check instances shrink replication
+	lock, err := zkConn.NewLock(chroot+"/kafka-health-check", zk.WorldACL(zk.PermAll))
+	if err != nil {
+		return errors.Wrap(err, "Unable to aquire ZK lock")
+	}
+	defer lock.Unlock()
+
 	topic := ZkTopic{Name: name}
-	err := zkPartitions(&topic, zkConn, name, chroot)
+	// Wait so that we get up-to-date partition info
+	waitForPartitionReassignmentDone(zkConn, chroot)
+	err = zkPartitions(&topic, zkConn, name, chroot)
 	if err != nil {
 		return err
 	}
