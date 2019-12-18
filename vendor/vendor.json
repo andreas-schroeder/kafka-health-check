@@ -13,29 +13,34 @@
 			"revision": "bd3c8e81be01eef76d4b503f5e687d2d1354d2d9"
 		},
 		{
-			"checksumSHA1": "Y9kbUqEbt5vUbqcuJea5PLmqtCI=",
+			"checksumSHA1": "4gKrTOaoNvbAgDCVfSLd6J77oPw=",
 			"path": "github.com/golang/snappy",
-			"revision": "b62d312cd2a7474ccb7eb06a4686f0560e4ba7fb"
+			"revision": "ff6b7dc882cf4cfba7ee0b9f7dcc1ac096c554aa",
+			"revisionTime": "2019-09-04T06:34:54Z"
 		},
 		{
-			"checksumSHA1": "LCo45KOYMPpJKgxlj3mlMVF1zN0=",
+			"checksumSHA1": "EboJP71U4hdmEbatcXCZApmUQNE=",
 			"path": "github.com/optiopay/kafka",
-			"revision": "5ea5ed9f82995911f606b346b370ffd233363950"
+			"revision": "1ad0bf381e31017cf3f5858d69f1d2e0ddca2642",
+			"revisionTime": "2019-05-21T16:24:15Z",
+			"version": "=v2.0.7",
+			"versionExact": "v2.0.7"
 		},
 		{
-			"checksumSHA1": "pI0IkJbYND5BK1oAF5LmByjq3C8=",
-			"path": "github.com/optiopay/kafka/integration",
-			"revision": "5ea5ed9f82995911f606b346b370ffd233363950"
-		},
-		{
-			"checksumSHA1": "0RLEpjhmQspBVOF3LjfMQGc9XeQ=",
+			"checksumSHA1": "6TiW3uQo5CvvsO16NP6ny98dzwI=",
 			"path": "github.com/optiopay/kafka/kafkatest",
-			"revision": "5ea5ed9f82995911f606b346b370ffd233363950"
+			"revision": "1ad0bf381e31017cf3f5858d69f1d2e0ddca2642",
+			"revisionTime": "2019-05-21T16:24:15Z",
+			"version": "=v2.0.7",
+			"versionExact": "v2.0.7"
 		},
 		{
-			"checksumSHA1": "FRHMZLdFcsD9j3ZfCXfUN2TFBm0=",
+			"checksumSHA1": "MysDwjWl2Nru+6NuBFfZlSW83P8=",
 			"path": "github.com/optiopay/kafka/proto",
-			"revision": "5ea5ed9f82995911f606b346b370ffd233363950"
+			"revision": "1ad0bf381e31017cf3f5858d69f1d2e0ddca2642",
+			"revisionTime": "2019-05-21T16:24:15Z",
+			"version": "=v2.0.7",
+			"versionExact": "v2.0.7"
 		},
 		{
 			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",
