@@ -60,7 +60,11 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 	if err != nil {
 		return
 	}
-	defer check.closeConnection(manageTopic)
+	defer func() {
+		if err := check.closeConnection(manageTopic); err != nil {
+			log.Errorf("error while closing shutdowning: %s", err)
+		}
+	}()
 
 	reportUnhealthy := func(err error) {
 		log.Println("metadata could not be retrieved, assuming broker unhealthy:", err)
@@ -112,7 +116,7 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 func newUpdate(report StatusReport, name string) Update {
 	data, err := report.Json()
 	if err != nil {
-		log.Warn("Error while marshaling %s status: %s", name, err.Error())
+		log.Warnf("Error while marshaling %s status: %s", name, err.Error())
 		data = simpleStatus(report.Summary())
 	}
 	return Update{report.Summary(), data}

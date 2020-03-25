@@ -25,8 +25,11 @@ func delAt(a []int32, i int) []int32 {
 }
 
 func delAll(a []int32, el int32) []int32 {
-	for i, ok := indexOf(a, el); ok; {
-		a = delAt(a, i)
+	ret := []int32{}
+	for _, v := range a {
+		if v != el {
+			ret = append(ret, v)
+		}
 	}
-	return a
+	return ret
 }

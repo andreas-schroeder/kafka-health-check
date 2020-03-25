@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
@@ -269,7 +270,8 @@ func createZkNode(zookeeper ZkConnection, path string, content string, failIfExi
 	return err
 }
 
-func (check *HealthCheck) closeConnection(deleteTopicIfPresent bool) {
+func (check *HealthCheck) closeConnection(deleteTopicIfPresent bool) error {
+	defer check.broker.Close()
 	if deleteTopicIfPresent {
 		log.Infof("connecting to ZooKeeper ensemble %s", check.config.zookeeperConnect)
 		connectString, chroot := zookeeperEnsembleAndChroot(check.config.zookeeperConnect)
@@ -277,14 +279,28 @@ func (check *HealthCheck) closeConnection(deleteTopicIfPresent bool) {
 		zkConn := check.zookeeper
 		_, err := zkConn.Connect(connectString, 10*time.Second)
 		if err != nil {
-			return
+			return err
 		}
 		defer zkConn.Close()
 
-		check.deleteTopic(zkConn, chroot, check.config.topicName, check.partitionID)
-		check.deleteTopic(zkConn, chroot, check.config.replicationTopicName, check.replicationPartitionID)
+		// taking clusterwide lock here
+		lockPath := path.Join(chroot, "healthcheck", "lock-delete-topic")
+		err = zkConn.Lock(lockPath)
+		if err != nil {
+			return fmt.Errorf("error while taking cluster lock: %w", err)
+		}
+		if err = check.deleteTopic(zkConn, chroot, check.config.topicName, check.partitionID); err != nil {
+			log.Errorf("error while deleting topic %s: %s", check.config.topicName, err)
+		}
+		if err = check.deleteTopic(zkConn, chroot, check.config.replicationTopicName, check.replicationPartitionID); err != nil {
+			log.Errorf("error while deleting topic %s: %s", check.config.replicationTopicName, err)
+		}
+		err = zkConn.Unlock(lockPath)
+		if err != nil {
+			return fmt.Errorf("error while releasing cluster lock: %w", err)
+		}
 	}
-	check.broker.Close()
+	return nil
 }
 
 func (check *HealthCheck) deleteTopic(zkConn ZkConnection, chroot, name string, partitionID int32) error {
@@ -329,6 +345,8 @@ func (check *HealthCheck) waitForTopicDeletion(topicPath string) error {
 }
 
 func (check *HealthCheck) reconnect(stop <-chan struct{}) error {
-	check.closeConnection(false)
+	if err := check.closeConnection(false); err != nil {
+		log.Warnf("failed to close connection: %s", err)
+	}
 	return check.connect(false, stop)
 }
