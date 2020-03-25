@@ -23,7 +23,7 @@ func TestCloseConnectionIsClosing(t *testing.T) {
 	zk.EXPECT().Unlock(gomock.Any())
 	brk.EXPECT().Close()
 
-	ck.closeConnection(true)
+	_ = ck.closeConnection(true)
 
 	close(stop)
 }
