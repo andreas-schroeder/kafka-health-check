@@ -6,12 +6,9 @@ services:
 language: go
 
 go:
-  - 1.8.3
+  - 1.x
 
 sudo: false
-
-install:
- - make deps
 
 script:
   - make test-no-race

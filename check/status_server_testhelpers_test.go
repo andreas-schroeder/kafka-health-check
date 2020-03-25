@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 func newServerSetup() (awaitServer *sync.WaitGroup, stop chan struct{}, brokerUpdates, clusterUpdates chan Update) {
