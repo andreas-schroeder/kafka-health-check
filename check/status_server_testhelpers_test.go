@@ -19,7 +19,7 @@ func newServerSetup() (awaitServer *sync.WaitGroup, stop chan struct{}, brokerUp
 	awaitServer.Add(1)
 	go func() {
 		if err := check.ServeHealth(brokerUpdates, clusterUpdates, stop); err != nil {
-			log.Fatalf("error while running the http server: %s", err)
+			log.Errorf("error while running the http server: %s", err)
 		}
 		awaitServer.Done()
 	}()
