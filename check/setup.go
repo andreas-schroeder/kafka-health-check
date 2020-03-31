@@ -263,7 +263,7 @@ func reassignPartition(zk ZkConnection, partitionID int32, replicas []int32, top
 		log.Info("creating reassign partition node")
 		err = createZkNode(zk, chroot+"/admin/reassign_partitions", reassign, true)
 		if err != nil {
-			log.Warn("error while creating reassignment node", err)
+			log.Warnf("error while creating reassignment node: %s", err)
 		}
 		repeat = err != nil
 	}
@@ -285,7 +285,7 @@ func createZkNode(zookeeper ZkConnection, path string, content string, failIfExi
 		return nil
 	}
 
-	log.Infof("creating node", path)
+	log.Infof("creating node %s", path)
 	flags := int32(0) // permanent node.
 	acl := zk.WorldACL(zk.PermAll)
 	_, err = zookeeper.Create(path, []byte(content), flags, acl)
