@@ -52,7 +52,7 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 
 	awaitCheck.Add(1)
 	go func() {
-		check.CheckHealth(brokerUpdates, clusterUpdates, stop)
+		check.CheckHealth(brokerUpdates, clusterUpdates, stop, &awaitCheck)
 		awaitCheck.Done()
 	}()
 

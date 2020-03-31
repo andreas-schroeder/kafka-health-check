@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
 
 // ServeHealth answers http queries for broker and cluster health.
-func (check *HealthCheck) ServeHealth(brokerUpdates <-chan Update, clusterUpdates <-chan Update, stop <-chan struct{}) error {
+func (check *HealthCheck) ServeHealth(brokerUpdates <-chan Update, clusterUpdates <-chan Update, stop <-chan struct{}, wg *sync.WaitGroup) error {
+	defer wg.Done()
 	port := check.config.statusServerPort
 
 	statusServer := func(name, path, errorStatus string, updates <-chan Update) {

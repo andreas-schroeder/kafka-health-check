@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/optiopay/kafka/proto"
@@ -14,7 +15,16 @@ import (
 
 const MainLockPath = "main_lock"
 
-func (check *HealthCheck) connect(firstConnection bool, stop <-chan struct{}) error {
+func (check *HealthCheck) reconnect(stop <-chan struct{}, wg *sync.WaitGroup) error {
+	if err := check.closeConnection(false); err != nil {
+		log.Warnf("failed to close connection: %s", err)
+	}
+	return check.connect(false, stop, wg)
+}
+
+func (check *HealthCheck) connect(firstConnection bool, stop <-chan struct{}, wg *sync.WaitGroup) error {
+	wg.Add(1)
+	defer wg.Done()
 	var createHealthTopicIfMissing = firstConnection
 	var createReplicationTopicIfMissing = firstConnection
 	ticker := time.NewTicker(check.config.retryInterval)
@@ -37,7 +47,7 @@ func (check *HealthCheck) tryConnectOnce(createBrokerTopic, createReplicationTop
 	connectString := []string{fmt.Sprintf("%s:%d", check.config.brokerHost, check.config.brokerPort)}
 	err := check.broker.Dial(connectString, check.brokerConfig())
 	if err != nil {
-		log.Printf("unable to connect to broker, retrying in %s (%s)", pauseTime.String(), err)
+		log.Infof("unable to connect to broker, retrying in %s (%s)", pauseTime.String(), err)
 		return err
 	}
 
@@ -48,21 +58,21 @@ func (check *HealthCheck) tryConnectOnce(createBrokerTopic, createReplicationTop
 
 	check.partitionID, err = check.findPartitionID(check.config.topicName, true, createBrokerTopic, metadata)
 	if err != nil {
-		log.Printf("%s retrying in %s", err.Error(), pauseTime)
+		log.Infof("%s retrying in %s", err.Error(), pauseTime)
 		check.broker.Close()
 		return err
 	}
 
 	check.replicationPartitionID, err = check.findPartitionID(check.config.replicationTopicName, false, createReplicationTopic, metadata)
 	if err != nil {
-		log.Printf("%s retrying in %s", err.Error(), pauseTime)
+		log.Infof("%s retrying in %s", err.Error(), pauseTime)
 		check.broker.Close()
 		return err
 	}
 
 	consumer, err := check.broker.Consumer(check.consumerConfig())
 	if err != nil {
-		log.Printf("unable to create consumer, retrying in %s: %s", pauseTime.String(), err)
+		log.Infof("unable to create consumer, retrying in %s: %s", pauseTime.String(), err)
 		check.broker.Close()
 		return err
 	}
@@ -92,7 +102,7 @@ func (check *HealthCheck) findPartitionID(topicName string, forHealthCheck bool,
 				continue
 			}
 
-			log.Printf(`found partition id %d for broker %d in topic "%s"`, partition.ID, brokerID, topicName)
+			log.Infof(`found partition id %d for broker %d in topic "%s"`, partition.ID, brokerID, topicName)
 			return partition.ID, nil
 		}
 	}
@@ -102,15 +112,15 @@ func (check *HealthCheck) findPartitionID(topicName string, forHealthCheck bool,
 		if err != nil {
 			return 0, errors.Wrapf(err, `unable to create topic "%s"`, topicName)
 		}
-		log.Printf(`topic "%s" created`, topicName)
+		log.Infof(`topic "%s" created`, topicName)
 		*createIfMissing = false
 		return 0, errors.New("topic created, try again")
 	}
 
 	if ok {
-		return 0, fmt.Errorf(`Unable to find broker's parition in topic "%s" in metadata`, topicName)
+		return 0, fmt.Errorf(`unable to find broker's parition in topic "%s" in metadata`, topicName)
 	} else {
-		return 0, fmt.Errorf(`Unable to find broker's topic "%s" in metadata`, topicName)
+		return 0, fmt.Errorf(`unable to find broker's topic "%s" in metadata`, topicName)
 	}
 }
 
@@ -209,16 +219,16 @@ func maybeExpandReplicationTopic(zk ZkConnection, brokerID, partitionID int32, t
 	topic := ZkTopic{Name: topicName}
 	err := zkPartitions(&topic, zk, topicName, chroot)
 	if err != nil {
-		return errors.Wrap(err, "Unable to determine if replication topic should be expanded")
+		return errors.Wrap(err, "unable to determine if replication topic should be expanded")
 	}
 
 	replicas, ok := topic.Partitions[partitionID]
 	if !ok {
-		return fmt.Errorf(`Cannot find partition with ID %d in topic "%s"`, partitionID, topicName)
+		return fmt.Errorf(`cannot find partition with ID %d in topic "%s"`, partitionID, topicName)
 	}
 
 	if !contains(replicas, brokerID) {
-		log.Info("Expanding replication check topic to include broker ", brokerID)
+		log.Info("expanding replication check topic to include broker ", brokerID)
 		replicas = append(replicas, brokerID)
 
 		return reassignPartition(zk, partitionID, replicas, topicName, chroot)
@@ -228,12 +238,14 @@ func maybeExpandReplicationTopic(zk ZkConnection, brokerID, partitionID int32, t
 
 func reassignPartition(zk ZkConnection, partitionID int32, replicas []int32, topicName, chroot string) (err error) {
 
+	log.Infof("reassigning partition %d on %#v for topic %s", partitionID, replicas, topicName)
+
 	repeat := true
 	for repeat {
 		time.Sleep(1 * time.Second)
 		exists, _, rp_err := zk.Exists(chroot + "/admin/reassign_partitions")
 		if rp_err != nil {
-			log.Warn("Error while checking if reassign_partitions node exists", err)
+			log.Warn("error while checking if reassign_partitions node exists", err)
 		}
 		repeat = exists || err != nil
 	}
@@ -248,10 +260,10 @@ func reassignPartition(zk ZkConnection, partitionID int32, replicas []int32, top
 
 	repeat = true
 	for repeat {
-		log.Info("Creating reassign partition node")
+		log.Info("creating reassign partition node")
 		err = createZkNode(zk, chroot+"/admin/reassign_partitions", reassign, true)
 		if err != nil {
-			log.Warn("Error while creating reassignment node", err)
+			log.Warn("error while creating reassignment node", err)
 		}
 		repeat = err != nil
 	}
@@ -273,7 +285,7 @@ func createZkNode(zookeeper ZkConnection, path string, content string, failIfExi
 		return nil
 	}
 
-	log.Println("creating node", path)
+	log.Infof("creating node", path)
 	flags := int32(0) // permanent node.
 	acl := zk.WorldACL(zk.PermAll)
 	_, err = zookeeper.Create(path, []byte(content), flags, acl)
@@ -281,6 +293,7 @@ func createZkNode(zookeeper ZkConnection, path string, content string, failIfExi
 }
 
 func (check *HealthCheck) closeConnection(deleteTopicIfPresent bool) error {
+	log.Debug("closing connection to the cluster")
 	defer check.broker.Close()
 	if deleteTopicIfPresent {
 		log.Infof("connecting to ZooKeeper ensemble %s", check.config.zookeeperConnect)
@@ -316,6 +329,7 @@ func (check *HealthCheck) closeConnection(deleteTopicIfPresent bool) error {
 }
 
 func (check *HealthCheck) deleteTopic(zkConn ZkConnection, chroot, name string, partitionID int32) error {
+	log.Infof("removing from topic %s", name)
 	topic := ZkTopic{Name: name}
 	err := zkPartitions(&topic, zkConn, name, chroot)
 	if err != nil {
@@ -334,6 +348,8 @@ func (check *HealthCheck) deleteTopic(zkConn ZkConnection, chroot, name string, 
 		return reassignPartition(zkConn, partitionID, replicas, name, chroot)
 	}
 
+	log.Infof("topic %s has only one replica, deleting it", name)
+
 	delTopicPath := chroot + "/admin/delete_topics/" + name
 
 	err = createZkNode(check.zookeeper, delTopicPath, "", true)
@@ -345,6 +361,7 @@ func (check *HealthCheck) deleteTopic(zkConn ZkConnection, chroot, name string, 
 
 func (check *HealthCheck) waitForTopicDeletion(topicPath string) error {
 	for {
+		log.Infof("checking zookeeper for deletion of node \"%s\"", topicPath)
 		exists, _, err := check.zookeeper.Exists(topicPath)
 		if err != nil {
 			return err
@@ -354,11 +371,4 @@ func (check *HealthCheck) waitForTopicDeletion(topicPath string) error {
 		}
 		time.Sleep(check.config.retryInterval)
 	}
-}
-
-func (check *HealthCheck) reconnect(stop <-chan struct{}) error {
-	if err := check.closeConnection(false); err != nil {
-		log.Warnf("failed to close connection: %s", err)
-	}
-	return check.connect(false, stop)
 }
