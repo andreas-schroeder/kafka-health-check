@@ -116,7 +116,7 @@ func (zkConn *zkConnection) Lock(path string) error {
 		return fmt.Errorf("connection not initialized")
 	}
 	if _, ok := zkConn.locks[path]; !ok {
-		zkConn.locks[path] = zk.NewLock(zkConn.connection, path, nil)
+		zkConn.locks[path] = zk.NewLock(zkConn.connection, path, zk.WorldACL(zk.PermAll))
 	}
 	lock := zkConn.locks[path]
 	return lock.Lock()
