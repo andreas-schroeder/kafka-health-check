@@ -160,7 +160,11 @@ func (check *HealthCheck) createTopic(name string, forHealthCheck bool) (err err
 	defer zkConn.Close()
 
 	lockPath := path.Join(chroot, "healthcheck", MainLockPath)
-	zkConn.Lock(lockPath)
+	log.Infof("taking lock for creating topic %s", name)
+	if err := zkConn.Lock(lockPath); err != nil {
+		return err
+	}
+	log.Infof("lock acquired for creating topic %s", name)
 	defer zkConn.Unlock(lockPath)
 
 	topicPath := chroot + "/config/topics/" + name
@@ -291,10 +295,12 @@ func (check *HealthCheck) closeConnection(deleteTopicIfPresent bool) error {
 
 		// taking clusterwide lock here
 		lockPath := path.Join(chroot, "healthcheck", MainLockPath)
+		log.Info("taking lock to close the connection")
 		err = zkConn.Lock(lockPath)
 		if err != nil {
 			return fmt.Errorf("error while taking cluster lock: %w", err)
 		}
+		log.Info("lock acquired to close the connection")
 		if err = check.deleteTopic(zkConn, chroot, check.config.topicName, check.partitionID); err != nil {
 			log.Errorf("error while deleting topic %s: %s", check.config.topicName, err)
 		}

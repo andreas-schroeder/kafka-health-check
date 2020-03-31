@@ -119,6 +119,7 @@ func (zkConn *zkConnection) Lock(path string) error {
 		zkConn.locks[path] = zk.NewLock(zkConn.connection, path, zk.WorldACL(zk.PermAll))
 	}
 	lock := zkConn.locks[path]
+
 	return lock.Lock()
 }
 
