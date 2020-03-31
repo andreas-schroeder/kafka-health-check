@@ -12,6 +12,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const MainLockPath = "main_lock"
+
 func (check *HealthCheck) connect(firstConnection bool, stop <-chan struct{}) error {
 	var createHealthTopicIfMissing = firstConnection
 	var createReplicationTopicIfMissing = firstConnection
@@ -157,6 +159,10 @@ func (check *HealthCheck) createTopic(name string, forHealthCheck bool) (err err
 	}
 	defer zkConn.Close()
 
+	lockPath := path.Join(chroot, "healthcheck", MainLockPath)
+	zkConn.Lock(lockPath)
+	defer zkConn.Unlock(lockPath)
+
 	topicPath := chroot + "/config/topics/" + name
 
 	exists := false
@@ -284,7 +290,7 @@ func (check *HealthCheck) closeConnection(deleteTopicIfPresent bool) error {
 		defer zkConn.Close()
 
 		// taking clusterwide lock here
-		lockPath := path.Join(chroot, "healthcheck", "lock-delete-topic")
+		lockPath := path.Join(chroot, "healthcheck", MainLockPath)
 		err = zkConn.Lock(lockPath)
 		if err != nil {
 			return fmt.Errorf("error while taking cluster lock: %w", err)
