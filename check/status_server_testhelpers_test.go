@@ -7,6 +7,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func newServerSetup() (awaitServer *sync.WaitGroup, stop chan struct{}, brokerUpdates, clusterUpdates chan Update) {
@@ -16,7 +18,9 @@ func newServerSetup() (awaitServer *sync.WaitGroup, stop chan struct{}, brokerUp
 	brokerUpdates, clusterUpdates = make(chan Update, 2), make(chan Update, 2)
 	awaitServer.Add(1)
 	go func() {
-		check.ServeHealth(brokerUpdates, clusterUpdates, stop)
+		if err := check.ServeHealth(brokerUpdates, clusterUpdates, stop, awaitServer); err != nil {
+			log.Errorf("error while running the http server: %s", err)
+		}
 		awaitServer.Done()
 	}()
 

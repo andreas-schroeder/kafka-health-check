@@ -2,6 +2,7 @@ package check
 
 import (
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/optiopay/kafka"
@@ -54,13 +55,18 @@ func New(config HealthCheckConfig) *HealthCheck {
 }
 
 // CheckHealth checks broker and cluster health.
-func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdates chan<- Update, stop <-chan struct{}) {
+func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdates chan<- Update, stop <-chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
 	manageTopic := !check.config.NoTopicCreation
-	err := check.connect(manageTopic, stop)
+	err := check.connect(manageTopic, stop, wg)
 	if err != nil {
 		return
 	}
-	defer check.closeConnection(manageTopic)
+	defer func() {
+		if err := check.closeConnection(manageTopic); err != nil {
+			log.Errorf("error while closing shutdowning: %s", err)
+		}
+	}()
 
 	reportUnhealthy := func(err error) {
 		log.Println("metadata could not be retrieved, assuming broker unhealthy:", err)
@@ -94,7 +100,7 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 			if brokerStatus.Status == unhealthy {
 				clusterUpdates <- Update{red, simpleStatus(red)}
 				log.Info("closing connection and reconnecting")
-				if err := check.reconnect(stop); err != nil {
+				if err := check.reconnect(stop, wg); err != nil {
 					log.Info("error while reconnecting:", err)
 					return
 				}
@@ -112,7 +118,7 @@ func (check *HealthCheck) CheckHealth(brokerUpdates chan<- Update, clusterUpdate
 func newUpdate(report StatusReport, name string) Update {
 	data, err := report.Json()
 	if err != nil {
-		log.Warn("Error while marshaling %s status: %s", name, err.Error())
+		log.Warnf("Error while marshaling %s status: %s", name, err.Error())
 		data = simpleStatus(report.Summary())
 	}
 	return Update{report.Summary(), data}

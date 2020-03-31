@@ -7,6 +7,8 @@ import (
 	"syscall"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/andreas-schroeder/kafka-health-check/check"
 )
 
@@ -16,9 +18,11 @@ func main() {
 
 	stop, awaitCheck := addShutdownHook()
 	brokerUpdates, clusterUpdates := make(chan check.Update, 2), make(chan check.Update, 2)
-	go healthCheck.ServeHealth(brokerUpdates, clusterUpdates, stop)
-	healthCheck.CheckHealth(brokerUpdates, clusterUpdates, stop)
-	awaitCheck.Done()
+	awaitCheck.Add(2)
+	go healthCheck.ServeHealth(brokerUpdates, clusterUpdates, stop, awaitCheck)
+	healthCheck.CheckHealth(brokerUpdates, clusterUpdates, stop, awaitCheck)
+	awaitCheck.Wait()
+	log.Info("shutdown finished")
 }
 
 func addShutdownHook() (chan struct{}, *sync.WaitGroup) {
@@ -30,10 +34,9 @@ func addShutdownHook() (chan struct{}, *sync.WaitGroup) {
 	signal.Notify(shutdown, os.Interrupt)
 	signal.Notify(shutdown, syscall.SIGTERM)
 	go func() {
-		for range shutdown {
-			close(stop)
-			awaitCheck.Wait()
-		}
+		<-shutdown
+		close(stop)
+		awaitCheck.Done()
 	}()
 
 	return stop, awaitCheck

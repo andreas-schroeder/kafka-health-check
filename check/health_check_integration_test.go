@@ -7,6 +7,27 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
+func TestCloseConnectionIsClosing(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	ck, zk := newZkTestCheck(ctrl)
+	stop := make(chan struct{})
+	brk := workingBroker(ck, ctrl, stop)
+	ck.broker = brk
+
+	zk.EXPECT().Connect(gomock.Any(), gomock.Any())
+	zk.EXPECT().Get("/brokers/topics/health-check")
+	zk.EXPECT().Get("/brokers/topics/replication-check")
+	zk.EXPECT().Close()
+	zk.EXPECT().Lock(gomock.Any())
+	zk.EXPECT().Unlock(gomock.Any())
+	brk.EXPECT().Close()
+
+	_ = ck.closeConnection(true)
+
+	close(stop)
+}
+
 func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHealthy(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -31,7 +52,7 @@ func Test_checkHealth_WhenBrokerInMetadataAndProducedMessageIsConsumed_ReportsHe
 
 	awaitCheck.Add(1)
 	go func() {
-		check.CheckHealth(brokerUpdates, clusterUpdates, stop)
+		check.CheckHealth(brokerUpdates, clusterUpdates, stop, &awaitCheck)
 		awaitCheck.Done()
 	}()
 

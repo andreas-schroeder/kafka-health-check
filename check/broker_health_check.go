@@ -16,14 +16,16 @@ func (check *HealthCheck) checkBrokerHealth(metadata *proto.MetadataResp) Broker
 	message := &proto.Message{Value: []byte(payload)}
 
 	if _, err := check.producer.Produce(check.config.topicName, check.partitionID, message); err != nil {
-		log.Println("producer failure - broker unhealthy:", err)
+		log.Warnf("producer failure - broker unhealthy: %s", err)
 	} else {
 		status = check.waitForMessage(message)
 	}
 
 	brokerStatus := BrokerStatus{ID: int32(check.config.brokerID), Status: status}
 	if status == healthy {
-		check.producer.Produce(check.config.replicationTopicName, check.replicationPartitionID, message)
+		if _, err := check.producer.Produce(check.config.replicationTopicName, check.replicationPartitionID, message); err != nil {
+			log.Warnf("producer failure - replication topic: %s", err)
+		}
 		check.brokerInSync(&brokerStatus, metadata)
 		check.brokerReplicates(&brokerStatus, metadata)
 	}

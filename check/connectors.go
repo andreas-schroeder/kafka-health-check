@@ -1,6 +1,7 @@
 package check
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/optiopay/kafka"
@@ -60,11 +61,14 @@ type ZkConnection interface {
 	Create(path string, data []byte, flags int32, acl []zk.ACL) (string, error)
 	Children(path string) ([]string, *zk.Stat, error)
 	Get(path string) ([]byte, *zk.Stat, error)
+	Lock(path string) error
+	Unlock(path string) error
 }
 
 // Actual implementation based on samuel/go-zookeeper/zk
 type zkConnection struct {
 	connection *zk.Conn
+	locks      map[string]*zk.Lock
 }
 
 type zkNullLogger struct {
@@ -78,11 +82,13 @@ func (zkConn *zkConnection) Connect(servers []string, sessionTimeout time.Durati
 	}
 	connection, events, err := zk.Connect(servers, sessionTimeout, loggerOption)
 	zkConn.connection = connection
+	zkConn.locks = map[string]*zk.Lock{}
 	return events, err
 }
 
 func (zkConn *zkConnection) Close() {
 	zkConn.connection.Close()
+	zkConn.locks = nil
 }
 
 func (zkConn *zkConnection) Exists(path string) (bool, *zk.Stat, error) {
@@ -103,4 +109,27 @@ func (zkConn *zkConnection) Children(path string) ([]string, *zk.Stat, error) {
 
 func (zkConn *zkConnection) Get(path string) ([]byte, *zk.Stat, error) {
 	return zkConn.connection.Get(path)
+}
+
+func (zkConn *zkConnection) Lock(path string) error {
+	if zkConn.locks == nil {
+		return fmt.Errorf("connection not initialized")
+	}
+	if _, ok := zkConn.locks[path]; !ok {
+		zkConn.locks[path] = zk.NewLock(zkConn.connection, path, zk.WorldACL(zk.PermAll))
+	}
+	lock := zkConn.locks[path]
+
+	return lock.Lock()
+}
+
+func (zkConn *zkConnection) Unlock(path string) error {
+	if zkConn.locks == nil {
+		return fmt.Errorf("connection not initialized")
+	}
+	if lock, ok := zkConn.locks[path]; !ok {
+		return fmt.Errorf("not locked")
+	} else {
+		return lock.Unlock()
+	}
 }
