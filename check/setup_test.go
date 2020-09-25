@@ -247,11 +247,7 @@ func Test_createTopic_WhenCreatingTopicPartitionsFails_ReturnsError(t *testing.T
 	zookeeper.mockFailingPathCreation("/brokers/topics/health-check")
 	zookeeper.EXPECT().Lock(fmt.Sprintf("healthcheck/%s", MainLockPath))
 	zookeeper.EXPECT().Unlock(fmt.Sprintf("healthcheck/%s", MainLockPath))
-
 	zookeeper.EXPECT().Close()
-
-	fmt.Printf("%v\n", zookeeper)
-	fmt.Printf("%v\n", check.zookeeper)
 
 	err := check.createTopic("health-check", true)
 
