@@ -110,6 +110,7 @@ func (check *HealthCheck) findPartitionID(topicName string, forHealthCheck bool,
 	if *createIfMissing {
 		err := check.createTopic(topicName, forHealthCheck)
 		if err != nil {
+			log.Infof("%v\n", err)
 			return 0, errors.Wrapf(err, `unable to create topic "%s"`, topicName)
 		}
 		log.Infof(`topic "%s" created`, topicName)
@@ -169,7 +170,7 @@ func (check *HealthCheck) createTopic(name string, forHealthCheck bool) (err err
 	}
 	defer zkConn.Close()
 
-	lockPath := path.Join(chroot, "healthcheck", MainLockPath)
+	lockPath := path.Join("/", chroot, "healthcheck", MainLockPath)
 	log.Infof("taking lock for creating topic %s", name)
 	if err := zkConn.Lock(lockPath); err != nil {
 		return err
