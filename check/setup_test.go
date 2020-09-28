@@ -2,6 +2,7 @@ package check
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -132,6 +133,8 @@ func Test_findPartitionID_WhenTopicDoesNotExistAndMayCreateIt_CreatesTopic(t *te
 	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil)
 	zookeeper.mockSuccessfulPathCreation("/config/topics/health-check")
 	zookeeper.mockSuccessfulPathCreation("/brokers/topics/health-check")
+	zookeeper.EXPECT().Lock(fmt.Sprintf("/healthcheck/%s", MainLockPath))
+	zookeeper.EXPECT().Unlock(fmt.Sprintf("/healthcheck/%s", MainLockPath))
 	zookeeper.EXPECT().Close()
 
 	createIfMissing := true
@@ -169,6 +172,8 @@ func Test_createHealthCheckTopic_WhenTopicCreationsSuccessful_ReturnsNoError(t *
 	zookeeper.EXPECT().Connect([]string{"localhost:2181", "localhost:2182"}, gomock.Any()).Return(nil, nil)
 	zookeeper.mockSuccessfulPathCreation("/config/topics/health-check")
 	zookeeper.mockSuccessfulPathCreation("/brokers/topics/health-check")
+	zookeeper.EXPECT().Lock(fmt.Sprintf("/healthcheck/%s", MainLockPath))
+	zookeeper.EXPECT().Unlock(fmt.Sprintf("/healthcheck/%s", MainLockPath))
 	zookeeper.EXPECT().Close()
 
 	err := check.createTopic("health-check", true)
@@ -221,6 +226,8 @@ func Test_createTopic_WhenCreatingTopicConfigFails_ReturnsError(t *testing.T) {
 	check, zookeeper := newZkTestCheck(ctrl)
 	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil)
 	zookeeper.mockFailingPathCreation("/config/topics/health-check")
+	zookeeper.EXPECT().Lock(fmt.Sprintf("/healthcheck/%s", MainLockPath))
+	zookeeper.EXPECT().Unlock(fmt.Sprintf("/healthcheck/%s", MainLockPath))
 	zookeeper.EXPECT().Close()
 
 	err := check.createTopic("health-check", true)
@@ -238,6 +245,8 @@ func Test_createTopic_WhenCreatingTopicPartitionsFails_ReturnsError(t *testing.T
 	zookeeper.EXPECT().Connect([]string{"localhost:2181"}, gomock.Any()).Return(nil, nil)
 	zookeeper.mockSuccessfulPathCreation("/config/topics/health-check")
 	zookeeper.mockFailingPathCreation("/brokers/topics/health-check")
+	zookeeper.EXPECT().Lock(fmt.Sprintf("/healthcheck/%s", MainLockPath))
+	zookeeper.EXPECT().Unlock(fmt.Sprintf("/healthcheck/%s", MainLockPath))
 	zookeeper.EXPECT().Close()
 
 	err := check.createTopic("health-check", true)

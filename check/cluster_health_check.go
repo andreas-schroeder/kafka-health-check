@@ -34,8 +34,6 @@ func (check *HealthCheck) checkBrokerMetadata(metadata *proto.MetadataResp, zkBr
 			cluster.Status = red
 		}
 	}
-
-	return
 }
 
 func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []ZkTopic, cluster *ClusterStatus) {
@@ -76,14 +74,10 @@ func (check *HealthCheck) checkTopics(metadata *proto.MetadataResp, zkTopics []Z
 			cluster.Status = worstStatus(cluster.Status, status.Status)
 		}
 	}
-
-	return
 }
 
 func checkPartition(partition *proto.MetadataRespPartition, zkTopic *ZkTopic, topicStatus *TopicStatus) {
 	status := PartitionStatus{Status: green}
-
-	replicas := partition.Replicas
 
 	replicas, ok := zkTopic.Partitions[partition.ID]
 	if !ok {

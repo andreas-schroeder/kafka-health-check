@@ -17,20 +17,20 @@ func (check *HealthCheck) getZooKeeperMetadata() (topics []ZkTopic, brokers []in
 	connectString, chroot := zookeeperEnsembleAndChroot(check.config.zookeeperConnect)
 	_, err = check.zookeeper.Connect(connectString, 10*time.Second)
 	if err != nil {
-		err = errors.Wrap(err, "Connecting to ZooKeeper failed")
+		err = errors.Wrap(err, "connecting to ZooKeeper failed")
 		return
 	}
 	defer check.zookeeper.Close()
 
 	brokers, err = zkBrokers(check.zookeeper, chroot)
 	if err != nil {
-		err = errors.Wrap(err, "Fetching brokers from ZooKeeper failed")
+		err = errors.Wrap(err, "fetching brokers from ZooKeeper failed")
 		return
 	}
 
 	topics, err = zkTopics(check.zookeeper, chroot)
 	if err != nil {
-		err = errors.Wrap(err, "Fetching topics from ZooKeeper failed")
+		err = errors.Wrap(err, "fetching topics from ZooKeeper failed")
 		return
 	}
 

@@ -3,15 +3,16 @@ package check
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
 
 // ServeHealth answers http queries for broker and cluster health.
-func (check *HealthCheck) ServeHealth(brokerUpdates <-chan Update, clusterUpdates <-chan Update, stop <-chan struct{}) {
+func (check *HealthCheck) ServeHealth(brokerUpdates <-chan Update, clusterUpdates <-chan Update, stop <-chan struct{}, wg *sync.WaitGroup) error {
+	defer wg.Done()
 	port := check.config.statusServerPort
 
 	statusServer := func(name, path, errorStatus string, updates <-chan Update) {
@@ -42,8 +43,9 @@ func (check *HealthCheck) ServeHealth(brokerUpdates <-chan Update, clusterUpdate
 			if currentStatus.Status == errorStatus {
 				http.Error(writer, string(currentStatus.Data), 500)
 			} else {
-				writer.Write(currentStatus.Data)
-				io.WriteString(writer, "\n")
+				if _, err := writer.Write(currentStatus.Data); err != nil {
+					log.Errorf("error responding to client: %s", err)
+				}
 			}
 		})
 	}
@@ -58,13 +60,8 @@ func (check *HealthCheck) ServeHealth(brokerUpdates <-chan Update, clusterUpdate
 	}
 
 	go func() {
-		for {
-			select {
-			case <-stop:
-				listener.Close()
-			}
-		}
+		<-stop
+		listener.Close()
 	}()
-	http.Serve(listener, nil)
-	return
+	return http.Serve(listener, nil)
 }

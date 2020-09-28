@@ -60,7 +60,7 @@ func (check *HealthCheck) validateConfig(l *log.Logger) bool {
 }
 
 // from https://github.com/apache/kafka/blob/6eacc0de303e4d29e083b89c1f53615c1dfa291e/core/src/main/scala/kafka/common/Topic.scala
-var legalTopicPattern = regexp.MustCompile("^[a-zA-Z0-9\\._\\-]+$")
+var legalTopicPattern = regexp.MustCompile(`^[a-zA-Z0-9\._\-]+$`)
 
 func validTopicName(name string) bool {
 	return legalTopicPattern.MatchString(name) && len(name) <= 255
