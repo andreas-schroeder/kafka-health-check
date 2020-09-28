@@ -110,7 +110,6 @@ func (check *HealthCheck) findPartitionID(topicName string, forHealthCheck bool,
 	if *createIfMissing {
 		err := check.createTopic(topicName, forHealthCheck)
 		if err != nil {
-			log.Infof("%v\n", err)
 			return 0, errors.Wrapf(err, `unable to create topic "%s"`, topicName)
 		}
 		log.Infof(`topic "%s" created`, topicName)
